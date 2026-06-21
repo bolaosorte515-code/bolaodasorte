@@ -281,14 +281,13 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
 <body>
 
 <header>
-  <h1>⚽ BOLÃO ONLINE</h1>
+  <h1 id="tituloApp">⚽ BOLÃO ONLINE</h1>
   <p>Dê seu palpite e concorra ao prêmio</p>
 </header>
 
 <nav id="navMenu">
   <button data-view="jogos" class="active">Jogos</button>
   <button data-view="meus">Meus Palpites</button>
-  <button data-view="admin">Admin</button>
 </nav>
 
 <main id="app"></main>
@@ -414,6 +413,20 @@ function setView(v){
   });
   render();
 }
+
+/* Acesso discreto ao admin: 5 toques no título do topo em até 2 segundos */
+let contadorCliquesTitulo = 0;
+let timeoutCliquesTitulo = null;
+document.getElementById('tituloApp').addEventListener('click', ()=>{
+  contadorCliquesTitulo++;
+  clearTimeout(timeoutCliquesTitulo);
+  if(contadorCliquesTitulo>=5){
+    contadorCliquesTitulo = 0;
+    setView('admin');
+    return;
+  }
+  timeoutCliquesTitulo = setTimeout(()=>{ contadorCliquesTitulo=0; }, 2000);
+});
 
 /* ===================== FIREBASE LISTENERS ===================== */
 db.ref('jogos').on('value', snap=>{
@@ -661,11 +674,14 @@ function bindEvents(){
   const btnLoginAdmin = document.getElementById('btnLoginAdmin');
   if(btnLoginAdmin) btnLoginAdmin.onclick = loginAdmin;
 
+  const btnVoltarLogin = document.getElementById('btnVoltarLogin');
+  if(btnVoltarLogin) btnVoltarLogin.onclick = ()=> setView('jogos');
+
   const btnLogoutAdmin = document.getElementById('btnLogoutAdmin');
   if(btnLogoutAdmin) btnLogoutAdmin.onclick = ()=>{
     sessionStorage.removeItem('bolao_admin');
     adminLogado = false;
-    render();
+    setView('jogos');
   };
 
   document.querySelectorAll('.tab-admin-btn').forEach(b=>{
@@ -892,6 +908,7 @@ function renderAdminLogin(){
     <h3 style="margin-bottom:14px;text-align:center">🔒 Acesso Admin</h3>
     <input type="password" id="senhaAdmin" placeholder="Senha">
     <button class="btn btn-primary" id="btnLoginAdmin">Entrar</button>
+    <button class="btn btn-secondary" id="btnVoltarLogin" style="margin-top:8px">Voltar</button>
   </div>`;
 }
 function loginAdmin(){
