@@ -38,11 +38,16 @@ header p{font-size:.8rem;opacity:.9;margin-top:4px;}
 .header-fallback{padding:18px 16px;}
 .logo-app{
   width:100%;
-  aspect-ratio:16/9;
+  aspect-ratio:2.4/1;
+  max-height:160px;
   object-fit:cover;
+  object-position:center 30%;
   display:block;
 }
 .logo-app.hidden{display:none;}
+@media (min-width:600px){
+  .logo-app{ aspect-ratio:16/9; max-height:280px; }
+}
 .logo-preview-admin{
   width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;
   display:block;margin:8px auto;box-shadow:0 1px 6px rgba(0,0,0,.2);
