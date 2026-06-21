@@ -39,8 +39,12 @@ header p{font-size:.8rem;opacity:.9;margin-top:4px;}
 .logo-app{
   width:100%;
   display:block;
+  margin:0 auto;
 }
 .logo-app.hidden{display:none;}
+@media (min-width:900px){
+  .logo-app{ max-width:1600px; }
+}
 .logo-preview-admin{
   width:100%;aspect-ratio:3.2/1;object-fit:cover;border-radius:10px;
   display:block;margin:8px auto;box-shadow:0 1px 6px rgba(0,0,0,.2);
@@ -476,7 +480,7 @@ db.ref('configApp/logoUrl').on('value', snap=>{
     fallbackEl.classList.remove('hidden');
     headerEl.classList.remove('com-banner');
   }
-  if(viewAtual==='admin' && adminTabAtual==='novo') render();
+  if(viewAtual==='admin' && adminTabAtual==='config') render();
 });
 
 let primeiroCarregamentoPalpites = true;
@@ -985,29 +989,36 @@ function renderAdminPainel(){
     <button class="tab-admin-btn ${adminTabAtual==='novo'?'active':''}" data-tab="novo">Novo Jogo</button>
     <button class="tab-admin-btn ${adminTabAtual==='pagamentos'?'active':''}" data-tab="pagamentos">Pagamentos</button>
     <button class="tab-admin-btn ${adminTabAtual==='resultados'?'active':''}" data-tab="resultados">Resultados</button>
+    <button class="tab-admin-btn ${adminTabAtual==='config'?'active':''}" data-tab="config">⚙️ Config</button>
   </div>
   ${adminTabAtual==='novo' ? renderAdminNovoJogo() : ''}
   ${adminTabAtual==='pagamentos' ? renderAdminPagamentos() : ''}
   ${adminTabAtual==='resultados' ? renderAdminResultados() : ''}
+  ${adminTabAtual==='config' ? renderAdminConfig() : ''}
   `;
 }
 
-function renderAdminNovoJogo(){
+function renderAdminConfig(){
   const logoAtual = configAppCache.logoUrl || '';
   return `
   <div class="card">
-    <h3 style="margin-bottom:6px;font-size:1rem">🖼️ Banner do cabeçalho</h3>
+    <h3 style="margin-bottom:6px;font-size:1rem">🖼️ Banner do cabeçalho (URL)</h3>
     <p class="small-text" style="margin-bottom:12px">Imagem ideal: 1600x500 (proporção ~3.2:1, formato de faixa larga). Ela substitui completamente o título em texto no topo do site.</p>
     <div class="field">
       <label>URL da imagem (cole o link de uma imagem hospedada)</label>
       <input type="text" id="novaLogoUrl" placeholder="https://..." value="${logoAtual}">
     </div>
-    ${logoAtual ? `<img src="${logoAtual}" class="logo-preview-admin" alt="preview banner">` : ''}
+    ${logoAtual ? `<img src="${logoAtual}" class="logo-preview-admin" alt="preview banner">` : `<p class="small-text">Nenhuma URL customizada salva — o site está usando o banner padrão embutido no sistema.</p>`}
     <div style="display:flex;gap:8px;margin-top:8px">
       <button class="btn btn-primary" id="btnSalvarLogo">Salvar banner</button>
-      ${logoAtual ? `<button class="btn btn-secondary" id="btnRemoverLogo">Remover</button>` : ''}
+      ${logoAtual ? `<button class="btn btn-secondary" id="btnRemoverLogo">Remover (voltar ao padrão)</button>` : ''}
     </div>
   </div>
+  `;
+}
+
+function renderAdminNovoJogo(){
+  return `
   <div class="card">
     <h3 style="margin-bottom:12px;font-size:1rem">Criar novo jogo</h3>
     <div class="field">
