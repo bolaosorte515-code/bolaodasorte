@@ -34,6 +34,14 @@ header{
 }
 header h1{font-size:1.4rem;font-weight:800;letter-spacing:.5px;}
 header p{font-size:.8rem;opacity:.9;margin-top:4px;}
+.logo-app{
+  max-width:90px;max-height:90px;border-radius:10px;
+  margin:0 auto 8px;display:block;box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.logo-preview-admin{
+  max-width:120px;max-height:120px;border-radius:10px;
+  display:block;margin:8px auto;box-shadow:0 1px 6px rgba(0,0,0,.2);
+}
 nav{
   display:flex;
   justify-content:center;
@@ -281,7 +289,8 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
 <body>
 
 <header>
-  <h1 id="tituloApp">⚽ BOLÃO ONLINE</h1>
+  <img id="logoApp" class="logo-app hidden" alt="Logo">
+  <h1 id="tituloApp">⚽ Bolão do Velho Thow</h1>
   <p>Dê seu palpite e concorra ao prêmio</p>
 </header>
 
@@ -320,6 +329,7 @@ const SENHA_ADMIN = "05048989";
 /* ===================== ESTADO ===================== */
 let jogosCache = {};
 let palpitesCache = {};
+let configAppCache = {};
 let adminLogado = sessionStorage.getItem('bolao_admin') === '1';
 let viewAtual = 'jogos';
 let jogoSelecionado = null;
@@ -438,6 +448,18 @@ db.ref('palpites').on('value', snap=>{
   detectarNovoPendente(palpitesCache, novoCache);
   palpitesCache = novoCache;
   render();
+});
+db.ref('configApp/logoUrl').on('value', snap=>{
+  const url = snap.val();
+  configAppCache.logoUrl = url || '';
+  const logoEl = document.getElementById('logoApp');
+  if(url){
+    logoEl.src = url;
+    logoEl.classList.remove('hidden');
+  } else {
+    logoEl.classList.add('hidden');
+  }
+  if(viewAtual==='admin' && adminTabAtual==='novo') render();
 });
 
 let primeiroCarregamentoPalpites = true;
@@ -687,6 +709,18 @@ function bindEvents(){
   document.querySelectorAll('.tab-admin-btn').forEach(b=>{
     b.onclick = ()=>{ adminTabAtual = b.dataset.tab; render(); };
   });
+
+  const btnSalvarLogo = document.getElementById('btnSalvarLogo');
+  if(btnSalvarLogo) btnSalvarLogo.onclick = ()=>{
+    const url = document.getElementById('novaLogoUrl').value.trim();
+    if(!url){ toast('Cole a URL da imagem'); return; }
+    db.ref('configApp/logoUrl').set(url).then(()=>toast('Logo atualizada!'));
+  };
+  const btnRemoverLogo = document.getElementById('btnRemoverLogo');
+  if(btnRemoverLogo) btnRemoverLogo.onclick = ()=>{
+    if(!confirm('Remover a logo do cabeçalho?')) return;
+    db.ref('configApp/logoUrl').remove().then(()=>toast('Logo removida'));
+  };
 
   const btnCriarJogo = document.getElementById('btnCriarJogo');
   if(btnCriarJogo) btnCriarJogo.onclick = criarJogo;
@@ -939,7 +973,20 @@ function renderAdminPainel(){
 }
 
 function renderAdminNovoJogo(){
+  const logoAtual = configAppCache.logoUrl || '';
   return `
+  <div class="card">
+    <h3 style="margin-bottom:12px;font-size:1rem">🖼️ Logo do cabeçalho</h3>
+    <div class="field">
+      <label>URL da imagem (cole o link de uma imagem hospedada)</label>
+      <input type="text" id="novaLogoUrl" placeholder="https://..." value="${logoAtual}">
+    </div>
+    ${logoAtual ? `<img src="${logoAtual}" class="logo-preview-admin" alt="preview logo">` : ''}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" id="btnSalvarLogo">Salvar logo</button>
+      ${logoAtual ? `<button class="btn btn-secondary" id="btnRemoverLogo">Remover</button>` : ''}
+    </div>
+  </div>
   <div class="card">
     <h3 style="margin-bottom:12px;font-size:1rem">Criar novo jogo</h3>
     <div class="field">
