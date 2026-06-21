@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bolão Online</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+:root{
+  --verde:#0d8a3e;
+  --amarelo:#ffcc29;
+  --azul:#1351a3;
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --texto:#1a1a1a;
+  --cinza:#6b7280;
+  --vermelho:#d93025;
+  --sombra:0 2px 8px rgba(0,0,0,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg);
+  color:var(--texto);
+  min-height:100vh;
+}
+header{
+  background:linear-gradient(135deg,var(--verde),var(--azul));
+  color:#fff;
+  padding:18px 16px;
+  text-align:center;
+  box-shadow:var(--sombra);
+}
+header h1{font-size:1.4rem;font-weight:800;letter-spacing:.5px;}
+header p{font-size:.8rem;opacity:.9;margin-top:4px;}
+nav{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  background:#fff;
+  padding:10px;
+  box-shadow:var(--sombra);
+  flex-wrap:wrap;
+}
+nav button{
+  border:none;background:transparent;
+  padding:8px 16px;border-radius:20px;
+  font-weight:600;font-size:.85rem;
+  cursor:pointer;color:var(--cinza);
+  transition:.2s;
+}
+nav button.active{background:var(--verde);color:#fff;}
+main{max-width:780px;margin:0 auto;padding:16px;}
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:18px;
+  margin-bottom:16px;
+  box-shadow:var(--sombra);
+}
+.jogo-card{cursor:pointer;transition:.15s;}
+.jogo-card:active{transform:scale(.98);}
+.placar-row{
+  display:flex;align-items:center;justify-content:center;
+  gap:16px;margin:14px 0;
+}
+.time{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  flex:1;
+}
+.time img{width:64px;height:auto;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.time span{font-weight:700;font-size:.85rem;text-align:center;}
+.vs{font-size:1.4rem;font-weight:900;color:var(--cinza);}
+.placar-final{
+  font-size:2rem;font-weight:900;color:var(--azul);
+  display:flex;gap:10px;align-items:center;justify-content:center;
+}
+.meta-row{
+  display:flex;justify-content:space-between;
+  font-size:.78rem;color:var(--cinza);margin-top:8px;
+  flex-wrap:wrap;gap:6px;
+}
+.badge{
+  display:inline-block;padding:3px 10px;border-radius:12px;
+  font-size:.7rem;font-weight:700;
+}
+.badge.aberto{background:#d4f4dd;color:var(--verde);}
+.badge.encerrado{background:#fde2e1;color:var(--vermelho);}
+
+/* Contagem regressiva */
+.mini-contagem{
+  text-align:center;margin-top:8px;padding-top:8px;
+  border-top:1px dashed #e0e3e8;font-size:.78rem;font-weight:700;
+  color:var(--vermelho);
+}
+.contagem-card{
+  text-align:center;background:#fff8f7;border:1.5px solid #ffd4d1;
+}
+.contagem-aviso{
+  font-size:.76rem;font-weight:700;color:var(--vermelho);
+  margin-bottom:8px;line-height:1.4;
+}
+.contagem-numero{
+  font-size:2.1rem;font-weight:900;color:var(--vermelho);
+  letter-spacing:1px;font-variant-numeric:tabular-nums;
+}
+.contagem-sub{font-size:.74rem;color:var(--cinza);margin-top:2px;}
+.valor{font-weight:800;color:var(--verde);font-size:.95rem;}
+input,select{
+  width:100%;padding:11px;border:1.5px solid #e0e3e8;
+  border-radius:8px;font-size:.95rem;margin-bottom:10px;
+  font-family:inherit;
+}
+input:focus,select:focus{outline:none;border-color:var(--verde);}
+label{font-size:.78rem;font-weight:700;color:var(--cinza);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+.field{margin-bottom:14px;}
+.placar-inputs{display:flex;align-items:center;gap:10px;justify-content:center;margin:10px 0;}
+.placar-inputs input{width:64px;text-align:center;font-size:1.4rem;font-weight:800;margin:0;}
+.btn{
+  width:100%;padding:13px;border:none;border-radius:8px;
+  font-weight:700;font-size:.95rem;cursor:pointer;
+  transition:.15s;
+}
+.btn-primary{background:var(--verde);color:#fff;}
+.btn-primary:active{transform:scale(.98);}
+.btn-secondary{background:#eef0f3;color:var(--texto);}
+.btn-danger{background:var(--vermelho);color:#fff;}
+.btn-amarelo{background:var(--amarelo);color:#1a1a1a;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.lista-palpites{margin-top:14px;}
+.palpite-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid #f0f1f3;
+  font-size:.88rem;
+}
+.palpite-item:last-child{border-bottom:none;}
+.status-pago{color:var(--verde);font-weight:700;font-size:.72rem;}
+.status-pendente{color:#e8a317;font-weight:700;font-size:.72rem;}
+.pix-box{
+  background:#fffbea;border:1.5px dashed var(--amarelo);
+  border-radius:10px;padding:14px;margin:14px 0;font-size:.85rem;
+}
+.pix-box code{
+  display:block;background:#fff;padding:8px;border-radius:6px;
+  word-break:break-all;font-size:.8rem;margin-top:6px;border:1px solid #eee;
+}
+.empty{text-align:center;color:var(--cinza);padding:30px 0;font-size:.9rem;}
+.tabs-admin{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+.tabs-admin button{
+  flex:1;padding:8px;border:1.5px solid #e0e3e8;background:#fff;
+  border-radius:8px;font-size:.78rem;font-weight:700;cursor:pointer;
+}
+.tabs-admin button.active{background:var(--azul);color:#fff;border-color:var(--azul);}
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:8px;
+  font-size:.85rem;z-index:999;opacity:0;transition:.3s;pointer-events:none;
+}
+.toast.show{opacity:1;bottom:30px;}
+.hidden{display:none !important;}
+.ranking-item{
+  display:flex;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid #f0f1f3;font-size:.85rem;
+}
+.premio-box{
+  background:linear-gradient(135deg,#fff8e1,#fffbea);
+  border:1.5px solid var(--amarelo);border-radius:10px;
+  padding:14px;margin-top:10px;text-align:center;
+}
+.premio-valor{font-size:1.6rem;font-weight:900;color:var(--verde);}
+.small-text{font-size:.75rem;color:var(--cinza);margin-top:4px;}
+.login-box{max-width:340px;margin:60px auto;}
+footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
+
+/* Mesa em destaque */
+.mesa-destaque{background:linear-gradient(135deg,#0d8a3e,#0a6b30);padding:18px;}
+.mesa-row{display:flex;gap:12px;}
+.mesa-item{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;}
+.mesa-label{font-size:.72rem;color:#d4f4dd;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.mesa-valor{font-size:1.7rem;font-weight:900;color:#fff;margin:4px 0;}
+.mesa-valor.mesa-premio{color:var(--amarelo);}
+.mesa-sub{font-size:.68rem;color:#d4f4dd;}
+.mesa-rifa-aviso{
+  margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);
+  text-align:center;font-size:.74rem;color:#fffbea;
+}
+
+/* Preview de ganho */
+.preview-ganho{margin:10px 0;}
+.preview-box{
+  background:#eef9f1;border:1.5px solid var(--verde);border-radius:8px;
+  padding:10px 12px;font-size:.82rem;color:#0a6b30;line-height:1.4;
+}
+.preview-valor{color:var(--verde);font-size:1rem;}
+
+/* Lista tipo papel */
+.lista-papel{border:1px solid #e0e3e8;border-radius:8px;overflow:hidden;}
+.lista-papel-header{
+  display:grid;grid-template-columns:36px 1fr 1.4fr 56px;
+  gap:6px;padding:8px 10px;background:#f4f6f8;
+  font-size:.68rem;font-weight:800;color:var(--cinza);
+  text-transform:uppercase;letter-spacing:.3px;
+}
+.lista-papel-row{
+  display:grid;grid-template-columns:36px 1fr 1.4fr 56px;
+  gap:6px;padding:9px 10px;border-top:1px solid #f0f1f3;
+  font-size:.82rem;align-items:center;
+}
+.lp-num{color:var(--cinza);font-weight:700;font-size:.75rem;}
+.lp-placar{font-weight:800;color:var(--azul);}
+.lp-nome{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* Popup de ganho */
+.popup-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1000;padding:20px;pointer-events:none;
+  transition:background .25s;
+}
+.popup-overlay.show{background:rgba(0,0,0,.55);pointer-events:auto;}
+.popup-box{
+  background:#fff;border-radius:16px;padding:26px 22px;
+  max-width:340px;width:100%;text-align:center;position:relative;
+  transform:scale(.85);opacity:0;transition:.25s;
+  box-shadow:0 10px 40px rgba(0,0,0,.3);
+}
+.popup-overlay.show .popup-box{transform:scale(1);opacity:1;}
+.popup-fechar{
+  position:absolute;top:10px;right:12px;background:none;border:none;
+  font-size:1.1rem;color:var(--cinza);cursor:pointer;width:28px;height:28px;
+}
+.popup-emoji{font-size:2.2rem;margin-bottom:4px;}
+.popup-titulo{font-size:.88rem;color:var(--cinza);font-weight:600;}
+.popup-ganho-valor{font-size:2.4rem;font-weight:900;color:var(--verde);margin:6px 0 2px;}
+.popup-sub{font-size:.78rem;color:var(--cinza);margin-bottom:16px;}
+.popup-detalhe{
+  background:#f7f8fa;border-radius:10px;padding:12px 14px;
+  text-align:left;margin-bottom:12px;
+}
+.popup-linha{
+  display:flex;justify-content:space-between;font-size:.78rem;
+  padding:4px 0;color:var(--texto);
+}
+.popup-linha span:last-child{font-weight:700;}
+.popup-aviso{font-size:.7rem;color:var(--cinza);line-height:1.4;}
+
+/* Preview de bandeira no formulário admin */
+.bandeira-preview{
+  display:flex;align-items:center;gap:8px;margin:6px 0 10px;
+  font-size:.74rem;color:var(--cinza);min-height:24px;
+}
+.bandeira-preview img{width:32px;height:auto;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+
+/* Painel de confirmação rápida de pagamento */
+.pendente-card{
+  border:1.5px solid #ffe49a;background:#fffdf6;
+  border-radius:10px;padding:12px;margin-bottom:10px;
+}
+.pendente-nome{font-weight:800;font-size:.95rem;}
+.pendente-tel{font-size:.78rem;color:var(--cinza);margin-bottom:2px;}
+.pendente-acoes{display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.btn-confirmar-grande{
+  background:var(--verde);color:#fff;border:none;
+  padding:14px;border-radius:8px;font-size:.95rem;font-weight:800;
+  cursor:pointer;letter-spacing:.3px;width:100%;
+}
+.btn-confirmar-grande:active{transform:scale(.98);}
+.pendente-acoes-sec{display:flex;gap:8px;}
+.btn-whats{
+  flex:1;text-align:center;background:#25d366;color:#fff;
+  text-decoration:none;padding:8px;border-radius:6px;
+  font-size:.78rem;font-weight:700;
+}
+.pendente-acoes-sec .btn-remover-palpite{
+  background:none;border:1px solid #f0c0c0;color:var(--vermelho);
+  cursor:pointer;font-size:.75rem;padding:8px 12px;border-radius:6px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚽ BOLÃO ONLINE</h1>
+  <p>Dê seu palpite e concorra ao prêmio</p>
+</header>
+
+<nav id="navMenu">
+  <button data-view="jogos" class="active">Jogos</button>
+  <button data-view="meus">Meus Palpites</button>
+  <button data-view="admin">Admin</button>
+</nav>
+
+<main id="app"></main>
+
+<div id="toast" class="toast"></div>
+
+<footer>Bolão Online — desenvolvido para a comunidade</footer>
+
+<script>
+/* ===================== CONFIG FIREBASE ===================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDy3qfKSLGSELH3Xf1_fB_p3ZZDeX5TSEY",
+  authDomain: "boloes-615d5.firebaseapp.com",
+  databaseURL: "https://boloes-615d5-default-rtdb.firebaseio.com",
+  projectId: "boloes-615d5",
+  storageBucket: "boloes-615d5.firebasestorage.app",
+  messagingSenderId: "874157018430",
+  appId: "1:874157018430:web:c38ee7490a37a004a8b06f"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+/* ===================== CONFIG GERAL ===================== */
+const TAXA_ADMIN = 0.20; // 20%
+const CHAVE_PIX = "04448598535"; // e-mail, telefone, CPF ou aleatória
+const NOME_RECEBEDOR = "Washington Bezerra do Prado Fernandes";
+const QRCODE_PIX_URL = "data:image/png;base64,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";
+const SENHA_ADMIN = "05048989";
+
+/* ===================== ESTADO ===================== */
+let jogosCache = {};
+let palpitesCache = {};
+let adminLogado = sessionStorage.getItem('bolao_admin') === '1';
+let viewAtual = 'jogos';
+let jogoSelecionado = null;
+
+/* ===================== UTIL ===================== */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function formatBRL(v){
+  return (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+}
+function bandeiraUrl(codigoPais){
+  return `https://flagcdn.com/w160/${codigoPais.toLowerCase()}.png`;
+}
+function imagemTime(j, lado){
+  // lado = 'A' ou 'B'. Usa imagem customizada se admin tiver colado uma URL, senão cai no padrão por país.
+  const urlCustom = lado==='A' ? j.imagemA : j.imagemB;
+  if(urlCustom) return urlCustom;
+  const pais = lado==='A' ? j.paisA : j.paisB;
+  return bandeiraUrl(pais || 'br');
+}
+
+/* Dicionário de seleções/países mais comuns em bolão, pra identificação automática da bandeira */
+const PAISES_CODIGO = {
+  'brasil':'br','argentina':'ar','alemanha':'de','frança':'fr','franca':'fr',
+  'espanha':'es','portugal':'pt','italia':'it','itália':'it','inglaterra':'gb-eng',
+  'holanda':'nl','paises baixos':'nl','países baixos':'nl','belgica':'be','bélgica':'be',
+  'uruguai':'uy','chile':'cl','colombia':'co','colômbia':'co','mexico':'mx','méxico':'mx',
+  'estados unidos':'us','eua':'us','canada':'ca','canadá':'ca','japao':'jp','japão':'jp',
+  'coreia do sul':'kr','coreia':'kr','australia':'au','austrália':'au','marrocos':'ma',
+  'senegal':'sn','gana':'gh','camaroes':'cm','camarões':'cm','nigeria':'ng','nigéria':'ng',
+  'tunisia':'tn','tunísia':'tn','egito':'eg','arabia saudita':'sa','arábia saudita':'sa',
+  'qatar':'qa','catar':'qa','irã':'ir','ira':'ir','iraque':'iq','china':'cn','russia':'ru',
+  'rússia':'ru','ucrania':'ua','ucrânia':'ua','polonia':'pl','polônia':'pl','suica':'ch',
+  'suíça':'ch','suecia':'se','suécia':'se','noruega':'no','dinamarca':'dk','escocia':'gb-sct',
+  'escócia':'gb-sct','irlanda':'ie','croacia':'hr','croácia':'hr','servia':'rs','sérvia':'rs',
+  'paraguai':'py','peru':'pe','equador':'ec','bolivia':'bo','bolívia':'bo','venezuela':'ve',
+  'costa rica':'cr','panama':'pa','panamá':'pa','jamaica':'jm','india':'in','índia':'in',
+  'turquia':'tr','grecia':'gr','grécia':'gr','austria':'at','áustria':'at','romenia':'ro',
+  'romênia':'ro','hungria':'hu','islandia':'is','islândia':'is','gales':'gb-wls',
+  'africa do sul':'za','áfrica do sul':'za','costa do marfim':'ci','mali':'ml','argelia':'dz',
+  'argélia':'dz'
+};
+function identificarCodigoPais(nomeTime){
+  if(!nomeTime) return '';
+  const chave = nomeTime.trim().toLowerCase();
+  return PAISES_CODIGO[chave] || '';
+}
+function fmtData(iso){
+  if(!iso) return '';
+  const d = new Date(iso+'T00:00:00');
+  return d.toLocaleDateString('pt-BR');
+}
+function dataHoraJogo(j){
+  // Combina data + hora do jogo num timestamp. Jogos antigos sem 'hora' caem à meia-noite.
+  const hora = j.hora || '00:00';
+  return new Date(`${j.data}T${hora}:00`);
+}
+function tempoRestanteMs(j){
+  return dataHoraJogo(j).getTime() - Date.now();
+}
+function jogoFechadoPorTempo(j){
+  return tempoRestanteMs(j) <= 0;
+}
+function fmtContagem(ms){
+  if(ms<=0) return '00:00:00';
+  const totalSeg = Math.floor(ms/1000);
+  const dias = Math.floor(totalSeg/86400);
+  const horas = Math.floor((totalSeg%86400)/3600);
+  const min = Math.floor((totalSeg%3600)/60);
+  const seg = totalSeg%60;
+  const pad = n=>String(n).padStart(2,'0');
+  if(dias>0) return `${dias}d ${pad(horas)}:${pad(min)}:${pad(seg)}`;
+  return `${pad(horas)}:${pad(min)}:${pad(seg)}`;
+}
+
+/* ===================== NAVEGAÇÃO ===================== */
+document.getElementById('navMenu').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(!btn) return;
+  setView(btn.dataset.view);
+});
+function setView(v){
+  viewAtual = v;
+  jogoSelecionado = null;
+  document.querySelectorAll('#navMenu button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.view===v);
+  });
+  render();
+}
+
+/* ===================== FIREBASE LISTENERS ===================== */
+db.ref('jogos').on('value', snap=>{
+  jogosCache = snap.val() || {};
+  render();
+});
+db.ref('palpites').on('value', snap=>{
+  const novoCache = snap.val() || {};
+  detectarNovoPendente(palpitesCache, novoCache);
+  palpitesCache = novoCache;
+  render();
+});
+
+let primeiroCarregamentoPalpites = true;
+function detectarNovoPendente(antigo, novo){
+  if(primeiroCarregamentoPalpites){
+    primeiroCarregamentoPalpites = false;
+    return; // não notifica no carregamento inicial da página
+  }
+  if(!adminLogado) return;
+  const idsAntigos = new Set(Object.keys(antigo||{}));
+  const idsNovos = Object.keys(novo||{});
+  const recemChegados = idsNovos.filter(id=>!idsAntigos.has(id) && !novo[id].pago);
+  if(recemChegados.length>0){
+    notificarNovoPendente(novo[recemChegados[0]]);
+  }
+}
+function notificarNovoPendente(palpite){
+  toast(`🔔 Novo palpite de ${palpite.nome} aguardando confirmação!`);
+  if(navigator.vibrate) navigator.vibrate([100,50,100]);
+  tocarBeep();
+}
+function tocarBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    osc.start(); osc.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+/* ===================== RENDER PRINCIPAL ===================== */
+function render(){
+  const app = document.getElementById('app');
+  if(viewAtual === 'jogos'){
+    app.innerHTML = jogoSelecionado ? renderDetalheJogo(jogoSelecionado) : renderListaJogos();
+  } else if(viewAtual === 'meus'){
+    app.innerHTML = renderMeusPalpites();
+  } else if(viewAtual === 'admin'){
+    app.innerHTML = adminLogado ? renderAdminPainel() : renderAdminLogin();
+  }
+  bindEvents();
+}
+
+/* ===================== LISTA DE JOGOS (PÚBLICO) ===================== */
+function renderListaJogos(){
+  // Ordena por data+hora do jogo: mais próximo primeiro. Jogos já encerrados vão pro final, mais recentes primeiro entre eles.
+  const ids = Object.keys(jogosCache).sort((a,b)=>{
+    const ja = jogosCache[a], jb = jogosCache[b];
+    const aEncerrado = ja.status==='encerrado', bEncerrado = jb.status==='encerrado';
+    if(aEncerrado !== bEncerrado) return aEncerrado ? 1 : -1; // abertos primeiro
+    if(aEncerrado && bEncerrado) return (jb.criadoEm||0)-(ja.criadoEm||0);
+    return dataHoraJogo(ja).getTime() - dataHoraJogo(jb).getTime();
+  });
+  if(ids.length===0){
+    return `<div class="empty">Nenhum jogo cadastrado ainda.<br>Volte em breve! ⚽</div>`;
+  }
+  return ids.map(id=>{
+    const j = jogosCache[id];
+    const fechadoPorTempo = jogoFechadoPorTempo(j);
+    const aberto = j.status !== 'encerrado' && !fechadoPorTempo;
+    const restante = tempoRestanteMs(j);
+    return `
+    <div class="card jogo-card" data-jogo="${id}">
+      <div class="placar-row">
+        <div class="time"><img src="${imagemTime(j,'A')}" alt="${j.timeA}"><span>${j.timeA}</span></div>
+        ${j.status==='encerrado' && j.placarA!=null
+          ? `<div class="placar-final">${j.placarA} <span style="font-size:1rem;color:#999">x</span> ${j.placarB}</div>`
+          : `<div class="vs">X</div>`}
+        <div class="time"><img src="${imagemTime(j,'B')}" alt="${j.timeB}"><span>${j.timeB}</span></div>
+      </div>
+      <div class="meta-row">
+        <span class="valor">${formatBRL(j.valor)}</span>
+        <span>${fmtData(j.data)} ${j.hora||''}</span>
+        <span class="badge ${aberto?'aberto':'encerrado'}">${j.status==='encerrado'?'Encerrado':(fechadoPorTempo?'Fechado p/ apostas':'Aberto')}</span>
+      </div>
+      ${j.status!=='encerrado' && !fechadoPorTempo ? `<div class="mini-contagem" data-contagem="${id}">⏱️ ${fmtContagem(restante)}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+/* ===================== DETALHE DO JOGO + PALPITAR ===================== */
+function renderContagemRegressiva(j, id){
+  const restante = tempoRestanteMs(j);
+  if(restante<=0) return '';
+  return `
+  <div class="card contagem-card">
+    <div class="contagem-aviso">⚠️ Para evitar fraudes, este bolão fechará automaticamente</div>
+    <div class="contagem-numero" data-contagem="${id}">${fmtContagem(restante)}</div>
+    <div class="contagem-sub">até a hora do jogo</div>
+  </div>`;
+}
+
+function renderDetalheJogo(id){
+  const j = jogosCache[id];
+  if(!j) return `<div class="empty">Jogo não encontrado.</div>`;
+  const palpitesDoJogo = Object.entries(palpitesCache).filter(([_,p])=>p.jogoId===id);
+  const pagos = palpitesDoJogo.filter(([_,p])=>p.pago);
+  const arrecadado = pagos.length * j.valor;
+  const premioTotal = arrecadado * (1-TAXA_ADMIN);
+
+  // Agrupa pagos por placar exato, pra saber quantos concorrem em cada combinação
+  const contagemPorPlacar = {};
+  pagos.forEach(([_,p])=>{
+    const k = `${p.placarA}x${p.placarB}`;
+    contagemPorPlacar[k] = (contagemPorPlacar[k]||0)+1;
+  });
+
+  let resultadoHtml = '';
+  if(j.status==='encerrado' && j.placarA!=null){
+    const ganhadores = pagos.filter(([_,p])=>p.placarA===j.placarA && p.placarB===j.placarB);
+    if(j.sorteioId){
+      const sorteado = palpitesCache[j.sorteioId];
+      resultadoHtml = `
+        <div class="premio-box">
+          <div style="font-size:.8rem;font-weight:700;color:var(--azul)">🎟️ NINGUÉM ACERTOU O PLACAR — FOI PRA RIFA</div>
+          <div class="premio-valor">${sorteado? sorteado.nome : '—'}</div>
+          <div class="small-text">Levou o prêmio de ${formatBRL(premioTotal)} no sorteio entre os ${pagos.length} participantes pagos</div>
+        </div>`;
+    } else if(ganhadores.length>0){
+      const cada = premioTotal/ganhadores.length;
+      resultadoHtml = `
+        <div class="premio-box">
+          <div style="font-size:.8rem;font-weight:700;color:var(--verde)">🏆 GANHADOR(ES) — ACERTOU O PLACAR EXATO</div>
+          ${ganhadores.map(([_,p])=>`<div class="premio-valor">${p.nome}</div>`).join('')}
+          <div class="small-text">${ganhadores.length>1? `Prêmio dividido entre ${ganhadores.length}: `:''}${formatBRL(cada)} cada</div>
+        </div>`;
+    } else {
+      resultadoHtml = `<div class="card"><div class="empty">Resultado lançado. Aguardando sorteio (ninguém acertou).</div></div>`;
+    }
+  }
+
+  return `
+  <button class="btn btn-secondary" id="btnVoltarJogos" style="margin-bottom:14px;width:auto;padding:8px 16px">← Voltar</button>
+  <div class="card">
+    <div class="placar-row">
+      <div class="time"><img src="${imagemTime(j,'A')}" alt="${j.timeA}"><span>${j.timeA}</span></div>
+      ${j.status==='encerrado' && j.placarA!=null
+        ? `<div class="placar-final">${j.placarA} <span style="font-size:1rem;color:#999">x</span> ${j.placarB}</div>`
+        : `<div class="vs">X</div>`}
+      <div class="time"><img src="${imagemTime(j,'B')}" alt="${j.timeB}"><span>${j.timeB}</span></div>
+    </div>
+    <div class="meta-row">
+      <span class="valor">Aposta: ${formatBRL(j.valor)}</span>
+      <span>${fmtData(j.data)} ${j.hora||''}</span>
+      <span class="badge ${j.status==='encerrado'?'encerrado':'aberto'}">${j.status==='encerrado'?'Encerrado':'Aberto'}</span>
+    </div>
+  </div>
+
+  ${j.status!=='encerrado' ? renderContagemRegressiva(j, id) : ''}
+
+  <div class="card mesa-destaque">
+    <div class="mesa-row">
+      <div class="mesa-item">
+        <span class="mesa-label">💰 Mesa acumulada</span>
+        <span class="mesa-valor">${formatBRL(arrecadado)}</span>
+        <span class="mesa-sub">${pagos.length} pago(s) confirmado(s)</span>
+      </div>
+      <div class="mesa-item">
+        <span class="mesa-label">🏆 Prêmio (80%)</span>
+        <span class="mesa-valor mesa-premio">${formatBRL(premioTotal)}</span>
+        <span class="mesa-sub">20% fica com a organização</span>
+      </div>
+    </div>
+    <div class="mesa-rifa-aviso">🎟️ Se ninguém acertar o palpite, o dinheiro será sorteado entre os participantes.</div>
+  </div>
+
+  ${resultadoHtml}
+
+  ${j.status!=='encerrado' && !jogoFechadoPorTempo(j) ? `
+  <div class="card">
+    <h3 style="margin-bottom:12px;font-size:1rem">📝 Dar palpite</h3>
+    <div class="field">
+      <label>Seu nome</label>
+      <input type="text" id="palpiteNome" placeholder="Nome completo">
+    </div>
+    <div class="field">
+      <label>Telefone (WhatsApp)</label>
+      <input type="text" id="palpiteTelefone" placeholder="(00) 00000-0000">
+    </div>
+    <label>Seu palpite de placar</label>
+    <div class="placar-inputs">
+      <span style="font-weight:700;font-size:.8rem">${j.timeA}</span>
+      <input type="number" min="0" id="palpiteA" placeholder="0">
+      <span style="font-weight:800">x</span>
+      <input type="number" min="0" id="palpiteB" placeholder="0">
+      <span style="font-weight:700;font-size:.8rem">${j.timeB}</span>
+    </div>
+    <button class="btn btn-primary" id="btnEnviarPalpite">Confirmar palpite</button>
+  </div>` : ''}
+  ${j.status!=='encerrado' && jogoFechadoPorTempo(j) ? `
+  <div class="card" style="text-align:center;border:1.5px solid var(--vermelho)">
+    <div style="font-size:1.5rem">🔒</div>
+    <div style="font-weight:800;color:var(--vermelho);margin-top:4px">Apostas encerradas</div>
+    <div class="small-text">O horário do jogo chegou. Não é mais possível enviar novos palpites.</div>
+  </div>` : ''}
+
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">📋 Lista de apostadores (${palpitesDoJogo.length})</h3>
+    <div class="lista-papel">
+      ${palpitesDoJogo.length===0 ? '<div class="empty">Ninguém apostou ainda. Seja o primeiro!</div>' :
+        `<div class="lista-papel-header">
+          <span>Nº</span><span>Palpite</span><span>Nome</span><span>Status</span>
+        </div>` +
+        palpitesDoJogo.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
+          <div class="lista-papel-row">
+            <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
+            <span class="lp-placar">${p.placarA} x ${p.placarB}</span>
+            <span class="lp-nome">${p.nome}</span>
+            <span class="${p.pago?'status-pago':'status-pendente'}">${p.pago?'✓ PAGO':'⏳'}</span>
+          </div>`).join('')}
+    </div>
+  </div>
+  `;
+}
+
+/* Guarda dados temporários do palpite pra mostrar Pix depois de enviar */
+let palpitePendenteId = null;
+
+function bindEvents(){
+  const btnVoltar = document.getElementById('btnVoltarJogos');
+  if(btnVoltar) btnVoltar.onclick = ()=>{ jogoSelecionado=null; render(); };
+
+  document.querySelectorAll('.jogo-card').forEach(card=>{
+    card.onclick = ()=>{ jogoSelecionado = card.dataset.jogo; render(); };
+  });
+
+  const btnEnviar = document.getElementById('btnEnviarPalpite');
+  if(btnEnviar) btnEnviar.onclick = enviarPalpite;
+
+  const inA = document.getElementById('palpiteA');
+  const inB = document.getElementById('palpiteB');
+  if(inA && inB){
+    const atualizar = ()=>atualizarPreviewGanho(jogoSelecionado);
+    inA.addEventListener('input', atualizar);
+    inB.addEventListener('input', atualizar);
+  }
+
+  const btnLoginAdmin = document.getElementById('btnLoginAdmin');
+  if(btnLoginAdmin) btnLoginAdmin.onclick = loginAdmin;
+
+  const btnLogoutAdmin = document.getElementById('btnLogoutAdmin');
+  if(btnLogoutAdmin) btnLogoutAdmin.onclick = ()=>{
+    sessionStorage.removeItem('bolao_admin');
+    adminLogado = false;
+    render();
+  };
+
+  document.querySelectorAll('.tab-admin-btn').forEach(b=>{
+    b.onclick = ()=>{ adminTabAtual = b.dataset.tab; render(); };
+  });
+
+  const btnCriarJogo = document.getElementById('btnCriarJogo');
+  if(btnCriarJogo) btnCriarJogo.onclick = criarJogo;
+
+  const novoTimeA = document.getElementById('novoTimeA');
+  const novoTimeB = document.getElementById('novoTimeB');
+  if(novoTimeA) novoTimeA.addEventListener('input', ()=>autoIdentificarBandeira('A'));
+  if(novoTimeB) novoTimeB.addEventListener('input', ()=>autoIdentificarBandeira('B'));
+  const novoPaisA = document.getElementById('novoPaisA');
+  const novoPaisB = document.getElementById('novoPaisB');
+  const novoImagemA = document.getElementById('novoImagemA');
+  const novoImagemB = document.getElementById('novoImagemB');
+  if(novoPaisA) novoPaisA.addEventListener('input', ()=>atualizarPreviewBandeira('A'));
+  if(novoPaisB) novoPaisB.addEventListener('input', ()=>atualizarPreviewBandeira('B'));
+  if(novoImagemA) novoImagemA.addEventListener('input', ()=>atualizarPreviewBandeira('A'));
+  if(novoImagemB) novoImagemB.addEventListener('input', ()=>atualizarPreviewBandeira('B'));
+
+  document.querySelectorAll('.btn-confirmar-pgto').forEach(b=>{
+    b.onclick = ()=> confirmarPagamento(b.dataset.id);
+  });
+  document.querySelectorAll('.btn-remover-palpite').forEach(b=>{
+    b.onclick = ()=> removerPalpite(b.dataset.id);
+  });
+
+  const buscaPendentes = document.getElementById('buscaPendentes');
+  if(buscaPendentes){
+    // mantém o foco e a posição do cursor ao re-renderizar enquanto digita
+    const pos = buscaPendentes.selectionStart;
+    buscaPendentes.focus();
+    buscaPendentes.setSelectionRange(pos, pos);
+    buscaPendentes.oninput = ()=>{ adminTabAtual='pagamentos'; render(); };
+  }
+  document.querySelectorAll('.btn-lancar-resultado').forEach(b=>{
+    b.onclick = ()=> lancarResultado(b.dataset.jogo);
+  });
+  document.querySelectorAll('.btn-sortear').forEach(b=>{
+    b.onclick = ()=> sortearGanhador(b.dataset.jogo);
+  });
+  document.querySelectorAll('.btn-excluir-jogo').forEach(b=>{
+    b.onclick = ()=> excluirJogo(b.dataset.jogo);
+  });
+  document.querySelectorAll('.btn-editar-bandeira').forEach(b=>{
+    b.onclick = ()=> editarBandeira(b.dataset.jogo);
+  });
+}
+
+let timeoutPreviewGanho = null;
+function atualizarPreviewGanho(jogoId){
+  const a = document.getElementById('palpiteA').value;
+  const b = document.getElementById('palpiteB').value;
+  clearTimeout(timeoutPreviewGanho);
+  if(a==='' || b===''){ fecharPopupGanho(); return; }
+  // pequeno debounce pra não abrir popup a cada tecla, só quando a pessoa pausa de digitar
+  timeoutPreviewGanho = setTimeout(()=> mostrarPopupGanho(jogoId, a, b), 450);
+}
+
+function mostrarPopupGanho(jogoId, a, b){
+  const j = jogosCache[jogoId];
+  if(!j) return;
+
+  const pagos = Object.entries(palpitesCache).filter(([_,p])=>p.jogoId===jogoId && p.pago);
+  const arrecadado = pagos.length * j.valor;
+
+  // quantos JÁ pagaram com esse mesmo placar (sem contar você ainda, já que você nem pagou)
+  const concorrentes = pagos.filter(([_,p])=>p.placarA===parseInt(a) && p.placarB===parseInt(b)).length;
+  const totalSeVoceEntrar = concorrentes + 1; // você entraria nessa disputa
+  const arrecadadoComVoce = arrecadado + j.valor;
+  const taxaOrganizacao = arrecadadoComVoce * TAXA_ADMIN;
+  const premioComVoce = arrecadadoComVoce - taxaOrganizacao;
+  const seuGanho = premioComVoce / totalSeVoceEntrar;
+
+  let popup = document.getElementById('popupGanho');
+  if(!popup){
+    popup = document.createElement('div');
+    popup.id = 'popupGanho';
+    popup.className = 'popup-overlay';
+    document.body.appendChild(popup);
+    popup.onclick = (e)=>{ if(e.target===popup) fecharPopupGanho(); };
+  }
+  popup.innerHTML = `
+    <div class="popup-box">
+      <button class="popup-fechar" id="btnFecharPopupGanho">✕</button>
+      <div class="popup-emoji">💰</div>
+      <div class="popup-titulo">Se o placar for ${a} x ${b}...</div>
+      <div class="popup-ganho-valor">${formatBRL(seuGanho)}</div>
+      <div class="popup-sub">é o que você ganharia</div>
+      <div class="popup-detalhe">
+        <div class="popup-linha"><span>Mesa total (com você)</span><span>${formatBRL(arrecadadoComVoce)}</span></div>
+        <div class="popup-linha"><span>Taxa da organização (20%)</span><span>− ${formatBRL(taxaOrganizacao)}</span></div>
+        <div class="popup-linha"><span>Prêmio a dividir</span><span>${formatBRL(premioComVoce)}</span></div>
+        <div class="popup-linha"><span>Concorrendo com esse placar</span><span>${totalSeVoceEntrar} pessoa${totalSeVoceEntrar>1?'s':''}</span></div>
+      </div>
+      <div class="popup-aviso">⚠️ Esse valor é calculado com base em quem já pagou até agora. Pode mudar até o fim das apostas.</div>
+      <div class="popup-aviso popup-aviso-rifa">🎟️ Se ninguém acertar o palpite, o dinheiro será sorteado entre os participantes.</div>
+    </div>`;
+  popup.classList.add('show');
+  document.getElementById('btnFecharPopupGanho').onclick = fecharPopupGanho;
+}
+
+function fecharPopupGanho(){
+  const popup = document.getElementById('popupGanho');
+  if(popup) popup.classList.remove('show');
+}
+
+function enviarPalpite(){
+  const j = jogosCache[jogoSelecionado];
+  if(!j || j.status==='encerrado' || jogoFechadoPorTempo(j)){
+    toast('Esse bolão já fechou para novas apostas');
+    render();
+    return;
+  }
+  const nome = document.getElementById('palpiteNome').value.trim();
+  const telefone = document.getElementById('palpiteTelefone').value.trim();
+  const placarA = document.getElementById('palpiteA').value;
+  const placarB = document.getElementById('palpiteB').value;
+
+  if(!nome || !telefone){ toast('Preencha nome e telefone'); return; }
+  if(placarA==='' || placarB===''){ toast('Preencha o placar do seu palpite'); return; }
+  fecharPopupGanho();
+
+  const novo = {
+    jogoId: jogoSelecionado,
+    nome, telefone,
+    placarA: parseInt(placarA), placarB: parseInt(placarB),
+    pago: false,
+    criadoEm: Date.now()
+  };
+  const ref = db.ref('palpites').push();
+  ref.set(novo).then(()=>{
+    palpitePendenteId = ref.key;
+    render();
+    mostrarPix();
+  });
+}
+
+function mostrarPix(){
+  const j = jogosCache[jogoSelecionado];
+  const app = document.getElementById('app');
+  app.innerHTML = `
+  <div class="card">
+    <h3 style="margin-bottom:10px">✅ Palpite registrado!</h3>
+    <p style="font-size:.88rem;color:var(--cinza)">Agora é só pagar via Pix para confirmar sua participação. Seu palpite só entra no jogo depois da confirmação manual do pagamento.</p>
+    <div class="pix-box" style="text-align:center">
+      <strong>Valor: ${formatBRL(j.valor)}</strong>
+      <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:220px;width:100%;margin:12px auto;border-radius:8px;border:1px solid #eee">
+      <div style="text-align:left">
+        Chave Pix (${NOME_RECEBEDOR}):
+        <code>${CHAVE_PIX}</code>
+      </div>
+    </div>
+    <p style="font-size:.8rem;color:var(--cinza)">Depois de pagar, envie o comprovante para o organizador confirmar. Você pode acompanhar o status em "Meus Palpites".</p>
+    <p style="font-size:.78rem;color:var(--cinza);margin-top:8px">🎟️ Se ninguém acertar o palpite, o dinheiro será sorteado entre os participantes.</p>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" id="btnOutroPalpite">Dar outro palpite neste jogo</button>
+      <button class="btn btn-primary" id="btnVoltarAposPix">OK, entendi</button>
+    </div>
+  </div>`;
+  document.getElementById('btnVoltarAposPix').onclick = ()=>{ jogoSelecionado=null; render(); };
+  document.getElementById('btnOutroPalpite').onclick = ()=>{ render(); };
+}
+
+/* ===================== MEUS PALPITES ===================== */
+function renderMeusPalpites(){
+  return `
+  <div class="card">
+    <label>Buscar pelo telefone usado no palpite</label>
+    <input type="text" id="buscaTelefone" placeholder="(00) 00000-0000">
+    <button class="btn btn-primary" id="btnBuscarPalpites">Buscar meus palpites</button>
+  </div>
+  <div id="resultadoBusca"></div>
+  `;
+}
+document.addEventListener('click', e=>{
+  if(e.target.id==='btnBuscarPalpites'){
+    const tel = document.getElementById('buscaTelefone').value.trim();
+    const resultados = Object.entries(palpitesCache)
+      .filter(([_,p])=>p.telefone===tel)
+      .sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0));
+    const div = document.getElementById('resultadoBusca');
+    if(resultados.length===0){
+      div.innerHTML = `<div class="empty">Nenhum palpite encontrado com esse telefone.</div>`;
+      return;
+    }
+    // Conta quantos palpites a pessoa tem em cada jogo, pra mostrar "palpite 2 de 3" etc
+    const contagemPorJogo = {};
+    resultados.forEach(([_,p])=>{ contagemPorJogo[p.jogoId] = (contagemPorJogo[p.jogoId]||0)+1; });
+    const ordemPorJogo = {};
+    div.innerHTML = `<div class="small-text" style="margin-bottom:10px">${resultados.length} palpite(s) encontrado(s)</div>` +
+      resultados.map(([id,p])=>{
+      const j = jogosCache[p.jogoId];
+      if(!j) return '';
+      ordemPorJogo[p.jogoId] = (ordemPorJogo[p.jogoId]||0)+1;
+      const totalNoJogo = contagemPorJogo[p.jogoId];
+      return `
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${j.timeA} x ${j.timeB}</strong>
+          <span class="${p.pago?'status-pago':'status-pendente'}">${p.pago?'✓ PAGO':'⏳ PENDENTE'}</span>
+        </div>
+        ${totalNoJogo>1 ? `<div class="small-text">Palpite ${ordemPorJogo[p.jogoId]} de ${totalNoJogo} que você deu neste jogo</div>` : ''}
+        <div class="small-text">Seu palpite: ${p.placarA} x ${p.placarB}</div>
+        ${j.status==='encerrado' && j.placarA!=null ? `<div class="small-text">Resultado real: ${j.placarA} x ${j.placarB}</div>` : ''}
+        ${!p.pago ? `<div class="pix-box" style="margin-top:10px;text-align:center">
+          <strong>Pague ${formatBRL(j.valor)} via Pix</strong>
+          <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:180px;width:100%;margin:10px auto;border-radius:8px;border:1px solid #eee">
+          <div style="text-align:left">Chave: <code>${CHAVE_PIX}</code></div>
+        </div>` : ''}
+      </div>`;
+    }).join('');
+  }
+});
+
+/* ===================== ADMIN ===================== */
+let adminTabAtual = 'novo';
+
+function renderAdminLogin(){
+  return `
+  <div class="login-box card">
+    <h3 style="margin-bottom:14px;text-align:center">🔒 Acesso Admin</h3>
+    <input type="password" id="senhaAdmin" placeholder="Senha">
+    <button class="btn btn-primary" id="btnLoginAdmin">Entrar</button>
+  </div>`;
+}
+function loginAdmin(){
+  const senha = document.getElementById('senhaAdmin').value;
+  if(senha === SENHA_ADMIN){
+    sessionStorage.setItem('bolao_admin','1');
+    adminLogado = true;
+    render();
+  } else {
+    toast('Senha incorreta');
+  }
+}
+
+function renderAdminPainel(){
+  return `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <button class="btn btn-secondary" id="btnLogoutAdmin" style="width:auto;padding:6px 14px;font-size:.8rem">Sair</button>
+  </div>
+  <div class="tabs-admin">
+    <button class="tab-admin-btn ${adminTabAtual==='novo'?'active':''}" data-tab="novo">Novo Jogo</button>
+    <button class="tab-admin-btn ${adminTabAtual==='pagamentos'?'active':''}" data-tab="pagamentos">Pagamentos</button>
+    <button class="tab-admin-btn ${adminTabAtual==='resultados'?'active':''}" data-tab="resultados">Resultados</button>
+  </div>
+  ${adminTabAtual==='novo' ? renderAdminNovoJogo() : ''}
+  ${adminTabAtual==='pagamentos' ? renderAdminPagamentos() : ''}
+  ${adminTabAtual==='resultados' ? renderAdminResultados() : ''}
+  `;
+}
+
+function renderAdminNovoJogo(){
+  return `
+  <div class="card">
+    <h3 style="margin-bottom:12px;font-size:1rem">Criar novo jogo</h3>
+    <div class="field">
+      <label>Nome do time A</label>
+      <input type="text" id="novoTimeA" placeholder="Ex: Brasil">
+      <div class="bandeira-preview" id="previewBandeiraA"></div>
+    </div>
+    <div class="field"><label>Código do país A (preenchido automático, edite se precisar)</label><input type="text" id="novoPaisA" placeholder="br" maxlength="2"></div>
+    <div class="field"><label>URL da imagem A (opcional — use se a bandeira automática não servir)</label><input type="text" id="novoImagemA" placeholder="https://..."></div>
+    <div class="field">
+      <label>Nome do time B</label>
+      <input type="text" id="novoTimeB" placeholder="Ex: Alemanha">
+      <div class="bandeira-preview" id="previewBandeiraB"></div>
+    </div>
+    <div class="field"><label>Código do país B (preenchido automático, edite se precisar)</label><input type="text" id="novoPaisB" placeholder="de" maxlength="2"></div>
+    <div class="field"><label>URL da imagem B (opcional — use se a bandeira automática não servir)</label><input type="text" id="novoImagemB" placeholder="https://..."></div>
+    <div class="field"><label>Valor da aposta (R$)</label><input type="number" step="0.01" id="novoValor" placeholder="3.00"></div>
+    <div class="field"><label>Data do jogo</label><input type="date" id="novoData"></div>
+    <div class="field"><label>Horário do jogo</label><input type="time" id="novoHora" value="16:00"></div>
+    <button class="btn btn-primary" id="btnCriarJogo">Criar jogo</button>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">Jogos cadastrados</h3>
+    ${Object.keys(jogosCache).length===0 ? '<div class="empty">Nenhum jogo ainda.</div>' :
+      Object.entries(jogosCache).sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0)).map(([id,j])=>`
+        <div class="palpite-item">
+          <span>${j.timeA} x ${j.timeB} — ${formatBRL(j.valor)}</span>
+          <span>
+            <button class="btn-editar-bandeira" data-jogo="${id}" style="background:none;border:none;color:var(--azul);cursor:pointer;font-size:.78rem;font-weight:700;margin-right:10px">Trocar imagem</button>
+            <button class="btn-excluir-jogo" data-jogo="${id}" style="background:none;border:none;color:var(--vermelho);cursor:pointer;font-size:.78rem;font-weight:700">Excluir</button>
+          </span>
+        </div>`).join('')}
+  </div>
+  `;
+}
+
+function autoIdentificarBandeira(lado){
+  const nomeInput = document.getElementById('novoTime'+lado);
+  const paisInput = document.getElementById('novoPais'+lado);
+  if(!nomeInput || !paisInput) return;
+  const codigo = identificarCodigoPais(nomeInput.value);
+  if(codigo){
+    paisInput.value = codigo;
+  }
+  atualizarPreviewBandeira(lado);
+}
+
+function atualizarPreviewBandeira(lado){
+  const preview = document.getElementById('previewBandeira'+lado);
+  if(!preview) return;
+  const imagemInput = document.getElementById('novoImagem'+lado);
+  const paisInput = document.getElementById('novoPais'+lado);
+  const urlCustom = imagemInput ? imagemInput.value.trim() : '';
+  const codigo = paisInput ? paisInput.value.trim() : '';
+  const url = urlCustom || (codigo ? bandeiraUrl(codigo) : '');
+  if(!url){ preview.innerHTML=''; return; }
+  preview.innerHTML = `<img src="${url}" alt="preview" onerror="this.style.display='none'"> <span>${urlCustom?'imagem customizada':'bandeira identificada: '+codigo.toUpperCase()}</span>`;
+}
+
+function criarJogo(){
+  const timeA = document.getElementById('novoTimeA').value.trim();
+  const paisA = document.getElementById('novoPaisA').value.trim().toLowerCase();
+  const imagemA = document.getElementById('novoImagemA').value.trim();
+  const timeB = document.getElementById('novoTimeB').value.trim();
+  const paisB = document.getElementById('novoPaisB').value.trim().toLowerCase();
+  const imagemB = document.getElementById('novoImagemB').value.trim();
+  const valor = parseFloat(document.getElementById('novoValor').value);
+  const data = document.getElementById('novoData').value;
+  const hora = document.getElementById('novoHora').value || '00:00';
+
+  if(!timeA || !timeB || !paisA || !paisB || !valor || !data){
+    toast('Preencha todos os campos'); return;
+  }
+  db.ref('jogos').push({
+    timeA, paisA, imagemA: imagemA || null,
+    timeB, paisB, imagemB: imagemB || null,
+    valor, data, hora,
+    status:'aberto', criadoEm: Date.now()
+  }).then(()=>{
+    toast('Jogo criado!');
+    render();
+  });
+}
+
+function editarBandeira(id){
+  const j = jogosCache[id];
+  if(!j) return;
+  const novaA = prompt(`URL da imagem do ${j.timeA} (deixe vazio para usar bandeira padrão):`, j.imagemA||'');
+  if(novaA===null) return;
+  const novaB = prompt(`URL da imagem do ${j.timeB} (deixe vazio para usar bandeira padrão):`, j.imagemB||'');
+  if(novaB===null) return;
+  db.ref('jogos/'+id).update({
+    imagemA: novaA.trim() || null,
+    imagemB: novaB.trim() || null
+  }).then(()=>toast('Imagem(ns) atualizada(s)!'));
+}
+
+function excluirJogo(id){
+  if(!confirm('Excluir este jogo e todos os palpites relacionados?')) return;
+  db.ref('jogos/'+id).remove();
+  Object.entries(palpitesCache).filter(([_,p])=>p.jogoId===id).forEach(([pid])=>{
+    db.ref('palpites/'+pid).remove();
+  });
+  toast('Jogo excluído');
+}
+
+function renderAdminPagamentos(){
+  const termoBusca = (document.getElementById('buscaPendentes')?.value || '').toLowerCase().trim();
+  let pendentes = Object.entries(palpitesCache).filter(([_,p])=>!p.pago);
+  pendentes = pendentes.sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0)); // mais recente primeiro
+  if(termoBusca){
+    pendentes = pendentes.filter(([_,p])=>
+      p.nome.toLowerCase().includes(termoBusca) || p.telefone.includes(termoBusca));
+  }
+  const pagos = Object.entries(palpitesCache).filter(([_,p])=>p.pago).sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0));
+  return `
+  <div class="card">
+    <input type="text" id="buscaPendentes" placeholder="🔎 Buscar por nome ou telefone..." value="${termoBusca}">
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">⏳ Pendentes de confirmação (${pendentes.length})</h3>
+    ${pendentes.length===0 ? '<div class="empty">Nenhum pagamento pendente.</div>' :
+      pendentes.map(([id,p])=>{
+        const j = jogosCache[p.jogoId];
+        const valor = j ? formatBRL(j.valor) : '';
+        const msgWhats = encodeURIComponent(`Oi ${p.nome}! Confirmamos seu pagamento do bolão (${j?`${j.timeA} x ${j.timeB}`:''} — palpite ${p.placarA}x${p.placarB}). Boa sorte! ⚽`);
+        const telLimpo = p.telefone.replace(/\D/g,'');
+        return `
+        <div class="pendente-card">
+          <div class="pendente-info">
+            <div class="pendente-nome">${p.nome}</div>
+            <div class="pendente-tel">${p.telefone}</div>
+            <div class="small-text">${j?`${j.timeA} x ${j.timeB}`:'(jogo removido)'} — Palpite: <strong>${p.placarA}x${p.placarB}</strong> — ${valor}</div>
+          </div>
+          <div class="pendente-acoes">
+            <button class="btn-confirmar-pgto btn-confirmar-grande" data-id="${id}">✓ CONFIRMAR PIX</button>
+            <div class="pendente-acoes-sec">
+              <a href="https://wa.me/55${telLimpo}?text=${msgWhats}" target="_blank" class="btn-whats">WhatsApp</a>
+              <button class="btn-remover-palpite" data-id="${id}">remover</button>
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">✓ Confirmados (${pagos.length})</h3>
+    ${pagos.length===0 ? '<div class="empty">Nenhum pagamento confirmado ainda.</div>' :
+      pagos.map(([id,p])=>{
+        const j = jogosCache[p.jogoId];
+        return `<div class="palpite-item">
+          <span>${p.nome} — ${j?`${j.timeA}x${j.timeB}`:''} (${p.placarA}x${p.placarB})</span>
+          <button class="btn-remover-palpite" data-id="${id}" style="background:none;border:none;color:var(--vermelho);cursor:pointer;font-size:.75rem">remover</button>
+        </div>`;
+      }).join('')}
+  </div>
+  `;
+}
+
+function confirmarPagamento(id){
+  db.ref('palpites/'+id+'/pago').set(true).then(()=>{
+    toast('✓ Pix confirmado!');
+    if(navigator.vibrate) navigator.vibrate(80);
+  });
+}
+function removerPalpite(id){
+  if(!confirm('Remover este palpite?')) return;
+  db.ref('palpites/'+id).remove().then(()=>toast('Palpite removido'));
+}
+
+function renderAdminResultados(){
+  const abertos = Object.entries(jogosCache).filter(([_,j])=>j.status!=='encerrado');
+  const encerrados = Object.entries(jogosCache).filter(([_,j])=>j.status==='encerrado');
+  return `
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">🔓 Jogos abertos — lançar resultado</h3>
+    ${abertos.length===0?'<div class="empty">Nenhum jogo aberto.</div>':
+      abertos.map(([id,j])=>`
+      <div class="card" style="background:#fafbfc">
+        <div style="font-weight:700;margin-bottom:8px">${j.timeA} x ${j.timeB}</div>
+        <div class="placar-inputs">
+          <input type="number" min="0" id="resA_${id}" placeholder="0" style="width:50px">
+          <span>x</span>
+          <input type="number" min="0" id="resB_${id}" placeholder="0" style="width:50px">
+        </div>
+        <button class="btn-lancar-resultado btn btn-amarelo" data-jogo="${id}">Lançar resultado e encerrar</button>
+      </div>`).join('')}
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:8px;font-size:1rem">🏁 Jogos encerrados</h3>
+    ${encerrados.length===0?'<div class="empty">Nenhum jogo encerrado ainda.</div>':
+      encerrados.map(([id,j])=>{
+        const pagos = Object.entries(palpitesCache).filter(([_,p])=>p.jogoId===id && p.pago);
+        const ganhadores = pagos.filter(([_,p])=>p.placarA===j.placarA && p.placarB===j.placarB);
+        const precisaSorteio = ganhadores.length===0 && pagos.length>0 && !j.sorteioId;
+        return `
+        <div class="card" style="background:#fafbfc">
+          <div style="font-weight:700">${j.timeA} ${j.placarA} x ${j.placarB} ${j.timeB}</div>
+          <div class="small-text">${pagos.length} pago(s) · ${ganhadores.length} acertador(es)</div>
+          ${precisaSorteio ? `<button class="btn-sortear btn btn-amarelo" data-jogo="${id}" style="margin-top:8px">🎟️ Ninguém acertou — Sortear ganhador</button>` : ''}
+          ${j.sorteioId ? `<div class="small-text" style="color:var(--verde);font-weight:700">Sorteado: ${palpitesCache[j.sorteioId]?.nome||'—'}</div>` : ''}
+        </div>`;
+      }).join('')}
+  </div>
+  `;
+}
+
+function lancarResultado(jogoId){
+  const a = document.getElementById('resA_'+jogoId).value;
+  const b = document.getElementById('resB_'+jogoId).value;
+  if(a==='' || b===''){ toast('Preencha o placar final'); return; }
+  if(!confirm('Confirmar resultado e encerrar o jogo? Essa ação não pode ser desfeita.')) return;
+  db.ref('jogos/'+jogoId).update({
+    status:'encerrado', placarA: parseInt(a), placarB: parseInt(b)
+  }).then(()=>{
+    toast('Resultado lançado!');
+    render();
+  });
+}
+
+function sortearGanhador(jogoId){
+  const pagos = Object.entries(palpitesCache).filter(([_,p])=>p.jogoId===jogoId && p.pago);
+  if(pagos.length===0){ toast('Nenhum participante pago para sortear'); return; }
+  const sorteadoIdx = Math.floor(Math.random()*pagos.length);
+  const [sorteadoId, sorteadoPalpite] = pagos[sorteadoIdx];
+  if(!confirm(`Sortear entre ${pagos.length} participantes pagos?`)) return;
+  db.ref('jogos/'+jogoId+'/sorteioId').set(sorteadoId).then(()=>{
+    toast(`🎉 Sorteado: ${sorteadoPalpite.nome}`);
+    render();
+  });
+}
+
+/* ===================== INIT ===================== */
+render();
+
+/* Atualiza as contagens regressivas a cada segundo, sem re-renderizar a tela inteira
+   (evita perder o foco de inputs enquanto a pessoa digita o palpite) */
+setInterval(()=>{
+  let algumZerou = false;
+  document.querySelectorAll('[data-contagem]').forEach(el=>{
+    const jogoId = el.dataset.contagem;
+    const j = jogosCache[jogoId];
+    if(!j) return;
+    const restante = tempoRestanteMs(j);
+    if(restante<=0){
+      algumZerou = true;
+    } else {
+      el.textContent = el.classList.contains('mini-contagem') ? `⏱️ ${fmtContagem(restante)}` : fmtContagem(restante);
+    }
+  });
+  if(algumZerou) render(); // algum jogo acabou de fechar: re-renderiza pra travar o formulário
+}, 1000);
+</script>
+</body>
+</html>
