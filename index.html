@@ -626,18 +626,18 @@ function renderDetalheJogo(id){
   </div>` : ''}
 
   <div class="card">
-    <h3 style="margin-bottom:8px;font-size:1rem">📋 Lista de apostadores (${palpitesDoJogo.length})</h3>
+    <h3 style="margin-bottom:8px;font-size:1rem">📋 Lista de apostadores confirmados (${pagos.length})</h3>
     <div class="lista-papel">
-      ${palpitesDoJogo.length===0 ? '<div class="empty">Ninguém apostou ainda. Seja o primeiro!</div>' :
+      ${pagos.length===0 ? '<div class="empty">Nenhum pagamento confirmado ainda. Seja o primeiro!</div>' :
         `<div class="lista-papel-header">
           <span>Nº</span><span>Palpite</span><span>Nome</span><span>Status</span>
         </div>` +
-        palpitesDoJogo.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
+        pagos.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
           <div class="lista-papel-row">
             <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
             <span class="lp-placar">${p.placarA} x ${p.placarB}</span>
             <span class="lp-nome">${p.nome}</span>
-            <span class="${p.pago?'status-pago':'status-pendente'}">${p.pago?'✓ PAGO':'⏳'}</span>
+            <span class="status-pago">✓ PAGO</span>
           </div>`).join('')}
     </div>
   </div>
@@ -657,14 +657,6 @@ function bindEvents(){
 
   const btnEnviar = document.getElementById('btnEnviarPalpite');
   if(btnEnviar) btnEnviar.onclick = enviarPalpite;
-
-  const inA = document.getElementById('palpiteA');
-  const inB = document.getElementById('palpiteB');
-  if(inA && inB){
-    const atualizar = ()=>atualizarPreviewGanho(jogoSelecionado);
-    inA.addEventListener('input', atualizar);
-    inB.addEventListener('input', atualizar);
-  }
 
   const btnLoginAdmin = document.getElementById('btnLoginAdmin');
   if(btnLoginAdmin) btnLoginAdmin.onclick = loginAdmin;
