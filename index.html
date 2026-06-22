@@ -31,15 +31,17 @@ header{
   text-align:center;
   box-shadow:var(--sombra);
   overflow:hidden;
+  line-height:0;
 }
 header.com-banner{padding:0;}
-header h1{font-size:1.4rem;font-weight:800;letter-spacing:.5px;}
-header p{font-size:.8rem;opacity:.9;margin-top:4px;}
-.header-fallback{padding:18px 16px;}
+header h1{font-size:1.4rem;font-weight:800;letter-spacing:.5px;line-height:1.3;}
+header p{font-size:.8rem;opacity:.9;margin-top:4px;line-height:1.3;}
+.header-fallback{padding:18px 16px;line-height:normal;}
 .logo-app{
   width:100%;
   display:block;
   margin:0 auto;
+  vertical-align:top;
 }
 .logo-app.hidden{display:none;}
 @media (min-width:900px){
@@ -321,13 +323,14 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
 <script>
 /* ===================== CONFIG FIREBASE ===================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyDy3qfKSLGSELH3Xf1_fB_p3ZZDeX5TSEY",
-  authDomain: "boloes-615d5.firebaseapp.com",
-  databaseURL: "https://boloes-615d5-default-rtdb.firebaseio.com",
-  projectId: "boloes-615d5",
-  storageBucket: "boloes-615d5.firebasestorage.app",
-  messagingSenderId: "874157018430",
-  appId: "1:874157018430:web:c38ee7490a37a004a8b06f"
+  apiKey: "AIzaSyAS1O4cn59fhU14Z-WjaqKtgnfdHDgYMTE",
+  authDomain: "bolao-da-sorte-8cf94.firebaseapp.com",
+  databaseURL: "https://bolao-da-sorte-8cf94-default-rtdb.firebaseio.com",
+  projectId: "bolao-da-sorte-8cf94",
+  storageBucket: "bolao-da-sorte-8cf94.firebasestorage.app",
+  messagingSenderId: "987287725028",
+  appId: "1:987287725028:web:8f013e80b7fdc7acb5ddf1",
+  measurementId: "G-CKRJV4B069"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
