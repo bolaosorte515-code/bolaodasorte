@@ -233,6 +233,46 @@ main{max-width:780px;margin:0 auto;padding:16px;}
   letter-spacing:1px;font-variant-numeric:tabular-nums;
 }
 .contagem-sub{font-size:.74rem;color:var(--cinza);margin-top:2px;}
+
+/* Timer piscando quando < 1 hora */
+@keyframes piscar{
+  0%,100%{opacity:1;}
+  50%{opacity:.3;}
+}
+.contagem-urgente{
+  animation:piscar .8s ease-in-out infinite;
+  color:#ff3b30 !important;
+  text-shadow:0 0 12px rgba(255,59,48,.5);
+}
+/* Notificação de pagamento confirmado */
+@keyframes slideDown{
+  from{transform:translateY(-80px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+@keyframes slideUp{
+  from{transform:translateY(0);opacity:1;}
+  to{transform:translateY(-80px);opacity:0;}
+}
+.notif-pago{
+  position:fixed;top:0;left:0;right:0;z-index:2000;
+  background:linear-gradient(135deg,#0d8a3e,#10a84c);
+  color:#fff;padding:14px 20px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  animation:slideDown .4s ease both;
+}
+.notif-pago.saindo{animation:slideUp .4s ease both;}
+.notif-pago-icon{font-size:1.6rem;}
+.notif-pago-texto{flex:1;}
+.notif-pago-titulo{font-weight:800;font-size:.95rem;}
+.notif-pago-sub{font-size:.78rem;opacity:.85;}
+/* Aviso de palpite duplicado */
+.aviso-duplicado{
+  background:#fff8e1;border:1.5px solid var(--amarelo);
+  border-radius:10px;padding:10px 12px;margin:8px 0;
+  font-size:.82rem;color:#7c5900;
+  display:flex;align-items:center;gap:8px;
+}
 .valor{font-weight:800;color:var(--verde);font-size:.95rem;}
 input,select{
   width:100%;padding:12px 14px;border:1.5px solid #e0e3e8;
@@ -739,6 +779,16 @@ db.ref('jogos').on('value', snap=>{
 db.ref('palpites').on('value', snap=>{
   const novoCache = snap.val() || {};
   detectarNovoPendente(palpitesCache, novoCache);
+  // Detecta palpites que acabaram de ser confirmados
+  Object.entries(novoCache).forEach(([id, p])=>{
+    const antP = palpitesCache[id];
+    if(antP && !antP.pago && p.pago){
+      // Acabou de ser confirmado!
+      const j = jogosCache[p.jogoId];
+      const jogoNome = j ? `${j.timeA} x ${j.timeB}` : 'Bolão';
+      mostrarNotifPago(p.nome, jogoNome);
+    }
+  });
   palpitesCache = novoCache;
   render();
 });
@@ -763,6 +813,45 @@ db.ref('configApp/logoUrl').on('value', snap=>{
 });
 
 let primeiroCarregamentoPalpites = true;
+function tocarSomConfirmacao(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Dois bipes curtos em sequência (som de "pago!")
+    [0, 0.18].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = i === 0 ? 880 : 1100;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.15);
+    });
+  } catch(e){}
+}
+
+function mostrarNotifPago(nome, jogo){
+  // Remove anterior se ainda existir
+  document.querySelectorAll('.notif-pago').forEach(el=>el.remove());
+  const div = document.createElement('div');
+  div.className = 'notif-pago';
+  div.innerHTML = `
+    <div class="notif-pago-icon">✅</div>
+    <div class="notif-pago-texto">
+      <div class="notif-pago-titulo">Pagamento confirmado!</div>
+      <div class="notif-pago-sub">${nome} — ${jogo}</div>
+    </div>`;
+  document.body.prepend(div);
+  tocarSomConfirmacao();
+  if(navigator.vibrate) navigator.vibrate([80, 40, 120]);
+  setTimeout(()=>{
+    div.classList.add('saindo');
+    setTimeout(()=>div.remove(), 400);
+  }, 4000);
+}
+
 function detectarNovoPendente(antigo, novo){
   if(primeiroCarregamentoPalpites){
     primeiroCarregamentoPalpites = false;
@@ -963,6 +1052,9 @@ function renderDetalheJogo(id){
       <input type="checkbox" id="modoMultiplo" style="width:18px;height:18px;margin:0;accent-color:var(--verde);cursor:pointer">
       Quero dar mais de um palpite (manter nome e telefone)
     </label>
+    <div id="avisoDuplicado" class="aviso-duplicado" style="display:none">
+      ⚠️ Você já registrou este placar exato. Escolha um placar diferente ou continue com outro.
+    </div>
     <button class="btn btn-primary" id="btnEnviarPalpite">Confirmar palpite</button>
   </div>` : ''}
   ${j.status!=='encerrado' && jogoFechadoPorTempo(j) ? `
@@ -1154,6 +1246,24 @@ function enviarPalpite(){
 
   if(!nome || !telefone){ toast('Preencha nome e telefone'); return; }
   if(placarA==='' || placarB===''){ toast('Preencha o placar do seu palpite'); return; }
+
+  // Verifica palpite duplicado (mesmo telefone + mesmo placar neste jogo)
+  const jaExiste = Object.values(palpitesCache).some(p =>
+    p.jogoId === jogoSelecionado &&
+    p.telefone === telefone &&
+    p.placarA === parseInt(placarA) &&
+    p.placarB === parseInt(placarB)
+  );
+  if(jaExiste){
+    const avisoEl = document.getElementById('avisoDuplicado');
+    if(avisoEl){
+      avisoEl.style.display = 'flex';
+      setTimeout(()=>{ avisoEl.style.display='none'; }, 4000);
+    }
+    toast('⚠️ Você já apostou neste placar!');
+    return;
+  }
+
   fecharPopupGanho();
 
   // guarda para reaproveitar se modo múltiplo
@@ -1713,7 +1823,14 @@ setInterval(()=>{
     if(restante<=0){
       algumZerou = true;
     } else {
-      el.textContent = el.classList.contains('mini-contagem') ? `⏱️ ${fmtContagem(restante)}` : fmtContagem(restante);
+      const txt = el.classList.contains('mini-contagem') ? `⏱️ ${fmtContagem(restante)}` : fmtContagem(restante);
+      el.textContent = txt;
+      // pisca quando falta menos de 1 hora
+      if(restante < 3600000){
+        el.classList.add('contagem-urgente');
+      } else {
+        el.classList.remove('contagem-urgente');
+      }
     }
   });
   if(algumZerou) render(); // algum jogo acabou de fechar: re-renderiza pra travar o formulário
