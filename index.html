@@ -1166,14 +1166,110 @@ function renderAdminPainel(){
     <button class="tab-admin-btn ${adminTabAtual==='novo'?'active':''}" data-tab="novo">Novo Jogo</button>
     <button class="tab-admin-btn ${adminTabAtual==='pagamentos'?'active':''}" data-tab="pagamentos">Pagamentos</button>
     <button class="tab-admin-btn ${adminTabAtual==='resultados'?'active':''}" data-tab="resultados">Resultados</button>
+    <button class="tab-admin-btn ${adminTabAtual==='transmissao'?'active':''}" data-tab="transmissao">📣 Transmissão</button>
     <button class="tab-admin-btn ${adminTabAtual==='config'?'active':''}" data-tab="config">⚙️ Config</button>
   </div>
   ${adminTabAtual==='novo' ? renderAdminNovoJogo() : ''}
   ${adminTabAtual==='pagamentos' ? renderAdminPagamentos() : ''}
   ${adminTabAtual==='resultados' ? renderAdminResultados() : ''}
+  ${adminTabAtual==='transmissao' ? renderAdminTransmissao() : ''}
   ${adminTabAtual==='config' ? renderAdminConfig() : ''}
   `;
 }
+
+function renderAdminTransmissao(){
+  // Coleta todos os palpites (pagos e pendentes), sem duplicar telefones
+  const vistos = new Set();
+  const jogosLista = Object.entries(jogosCache).sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0));
+  const todosJogadores = [];
+  Object.entries(palpitesCache).forEach(([_, p])=>{
+    const tel = (p.telefone||'').replace(/\D/g,'');
+    if(!tel || vistos.has(tel)) return;
+    vistos.add(tel);
+    todosJogadores.push({ nome: p.nome, telefone: tel, pago: p.pago, jogoId: p.jogoId });
+  });
+
+  const jogoOpts = `<option value="">Todos os bolões (${todosJogadores.length} pessoa${todosJogadores.length!==1?'s':''})</option>` +
+    jogosLista.map(([id,j])=>{
+      const jogadoresJogo = [...new Set(
+        Object.values(palpitesCache).filter(p=>p.jogoId===id).map(p=>(p.telefone||'').replace(/\D/g,''))
+      )].filter(Boolean);
+      return `<option value="${id}">${j.timeA} x ${j.timeB} (${jogadoresJogo.length} pessoa${jogadoresJogo.length!==1?'s':''})</option>`;
+    }).join('');
+
+  return `
+  <div class="card">
+    <h3 style="margin-bottom:4px;font-size:1rem">📣 Lista de Transmissão WhatsApp</h3>
+    <p class="small-text" style="margin-bottom:14px">Copie os números, abra o WhatsApp → Nova lista de transmissão → cole os números. A mensagem chegará para todos de uma só vez.</p>
+
+    <div class="field">
+      <label>Filtrar por bolão</label>
+      <select id="filtroTransmissaoJogo">${jogoOpts}</select>
+    </div>
+    <div class="field">
+      <label>Sua mensagem</label>
+      <textarea id="msgTransmissao" rows="4" style="width:100%;padding:11px;border:1.5px solid #e0e3e8;border-radius:8px;font-size:.95rem;font-family:inherit;resize:vertical"placeholder="Ex: Olá! O resultado do bolão foi 2x1. Parabéns aos ganhadores! 🏆"></textarea>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btnCopiarNumeros" style="flex:1">📋 Copiar números</button>
+      <button class="btn btn-secondary" id="btnCopiarMensagem" style="flex:1">📝 Copiar mensagem</button>
+    </div>
+
+    <div id="listaTransmissaoBox" style="background:#f4f6f8;border-radius:10px;padding:12px;display:none">
+      <div style="font-size:.75rem;font-weight:800;color:var(--cinza);margin-bottom:8px;text-transform:uppercase">
+        👥 <span id="totalTransmissao">0</span> contatos encontrados
+      </div>
+      <div id="listaTransmissaoNomes" style="font-size:.82rem;line-height:1.8"></div>
+    </div>
+  </div>`;
+}
+
+function getNumerosFiltrados(){
+  const jogoId = document.getElementById('filtroTransmissaoJogo')?.value || '';
+  const vistos = new Set();
+  const resultado = [];
+  Object.entries(palpitesCache).forEach(([_, p])=>{
+    if(jogoId && p.jogoId !== jogoId) return;
+    const tel = (p.telefone||'').replace(/\D/g,'');
+    if(!tel || vistos.has(tel)) return;
+    vistos.add(tel);
+    // Garante formato 55 + DDD + número
+    const telFormatado = tel.startsWith('55') ? tel : '55' + tel;
+    resultado.push({ nome: p.nome, telefone: telFormatado, pago: p.pago });
+  });
+  return resultado;
+}
+
+document.addEventListener('click', e=>{
+  if(e.target.id === 'btnCopiarNumeros'){
+    const jogadores = getNumerosFiltrados();
+    if(jogadores.length === 0){ toast('Nenhum jogador encontrado'); return; }
+    const numeros = jogadores.map(j=>j.telefone).join('\n');
+    navigator.clipboard.writeText(numeros).then(()=>{
+      toast(`✅ ${jogadores.length} número${jogadores.length!==1?'s':''} copiado${jogadores.length!==1?'s':''}!`);
+      // Mostra lista de nomes
+      const box = document.getElementById('listaTransmissaoBox');
+      const nomes = document.getElementById('listaTransmissaoNomes');
+      const total = document.getElementById('totalTransmissao');
+      if(box && nomes && total){
+        total.textContent = jogadores.length;
+        nomes.innerHTML = jogadores.map((j,i)=>
+          `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8eaed">
+            <span>${String(i+1).padStart(2,'0')}. ${j.nome}</span>
+            <span style="color:var(--cinza);font-size:.75rem">${j.telefone}</span>
+          </div>`
+        ).join('');
+        box.style.display = 'block';
+      }
+    });
+  }
+  if(e.target.id === 'btnCopiarMensagem'){
+    const msg = document.getElementById('msgTransmissao')?.value.trim();
+    if(!msg){ toast('Digite uma mensagem antes'); return; }
+    navigator.clipboard.writeText(msg).then(()=> toast('✅ Mensagem copiada!'));
+  }
+});
 
 function renderAdminConfig(){
   const logoAtual = configAppCache.logoUrl || '';
@@ -1358,6 +1454,15 @@ function confirmarPagamento(id){
   db.ref('palpites/'+id+'/pago').set(true).then(()=>{
     toast('✓ Pix confirmado!');
     if(navigator.vibrate) navigator.vibrate(80);
+    // Abre WhatsApp com mensagem de confirmação
+    const p = palpitesCache[id];
+    if(p){
+      const j = jogosCache[p.jogoId];
+      const telLimpo = (p.telefone||'').replace(/\D/g,'');
+      const tel = telLimpo.startsWith('55') ? telLimpo : '55'+telLimpo;
+      const msg = encodeURIComponent(`Oi ${p.nome}! Confirmamos seu pagamento do bolão (${j?`${j.timeA} x ${j.timeB}`:''} — palpite ${p.placarA}x${p.placarB}). Boa sorte! ⚽`);
+      window.open(`https://wa.me/${tel}?text=${msg}`, '_blank');
+    }
   });
 }
 function removerPalpite(id){
