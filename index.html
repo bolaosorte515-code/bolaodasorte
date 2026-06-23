@@ -703,8 +703,8 @@ function renderDetalheJogo(id){
           <div class="lista-papel-row">
             <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
             <span class="lp-placar">${p.placarA} x ${p.placarB}</span>
-            <span class="lp-nome">${p.pago ? p.nome : '🔍'}</span>
-            <span class="${p.pago ? 'status-pago' : 'status-pendente'}">${p.pago ? '✓ PAGO' : 'Pendente'}</span>
+            <span class="lp-nome">${p.nome}</span>
+            <span class="${p.pago ? 'status-pago' : 'status-pendente'}">${p.pago ? '✓ PAGO' : '🔍 Pendente'}</span>
           </div>`).join('')}
     </div>
   </div>
