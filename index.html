@@ -903,7 +903,10 @@ function mostrarPix(){
       <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:220px;width:100%;margin:12px auto;border-radius:8px;border:1px solid #eee">
       <div style="text-align:left">
         Chave Pix (${NOME_RECEBEDOR}):
-        <code>${CHAVE_PIX}</code>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+          <code id="chavePixPrincipal">${CHAVE_PIX}</code>
+          <button onclick="navigator.clipboard.writeText('${CHAVE_PIX}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
+        </div>
       </div>
     </div>
     <p style="font-size:.8rem;color:var(--cinza)">Depois de pagar, envie o comprovante para o organizador confirmar. Você pode acompanhar o status em "Meus Palpites".</p>
@@ -961,7 +964,12 @@ document.addEventListener('click', e=>{
         ${!p.pago ? `<div class="pix-box" style="margin-top:10px;text-align:center">
           <strong>Pague ${formatBRL(j.valor)} via Pix</strong>
           <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:180px;width:100%;margin:10px auto;border-radius:8px;border:1px solid #eee">
-          <div style="text-align:left">Chave: <code>${CHAVE_PIX}</code></div>
+          <div style="text-align:left">Chave: 
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <code>${CHAVE_PIX}</code>
+              <button onclick="navigator.clipboard.writeText('${CHAVE_PIX}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
+            </div>
+          </div>
         </div>` : ''}
       </div>`;
     }).join('');
