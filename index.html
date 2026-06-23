@@ -302,6 +302,113 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
   background:none;border:1px solid #f0c0c0;color:var(--vermelho);
   cursor:pointer;font-size:.75rem;padding:8px 12px;border-radius:6px;
 }
+
+/* ===== MELHORIAS MOBILE ===== */
+@media (max-width:480px){
+  /* Nav fixa na parte inferior */
+  nav{
+    position:fixed;bottom:0;left:0;right:0;
+    z-index:100;padding:8px 6px;
+    border-top:1px solid #e0e3e8;
+    gap:4px;
+  }
+  nav button{
+    flex:1;padding:8px 4px;font-size:.78rem;
+    border-radius:12px;
+  }
+  /* Espaço para a nav fixa não cobrir conteúdo */
+  body{padding-bottom:70px;}
+
+  /* Cards com menos padding */
+  .card{padding:14px;border-radius:12px;}
+  main{padding:10px;}
+
+  /* Times menores */
+  .time img{width:48px;}
+  .time span{font-size:.78rem;}
+  .vs{font-size:1.2rem;}
+  .placar-final{font-size:1.6rem;}
+
+  /* Mesa — empilha em 2 colunas no mobile */
+  .mesa-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+  .mesa-valor{font-size:1.3rem;}
+  .mesa-contagem-valor{font-size:1.1rem !important;}
+
+  /* Contagem regressiva inline ocupa linha inteira */
+  .mesa-item.mesa-contagem-inline{
+    grid-column:1 / -1;
+    border-top:1px solid rgba(255,255,255,.2);
+    padding-top:10px;
+  }
+
+  /* Lista de palpites — colunas mais compactas */
+  .lista-papel-header,
+  .lista-papel-row{
+    grid-template-columns:28px 1fr 1.2fr 52px;
+    gap:4px;
+    padding:8px 8px;
+    font-size:.76rem;
+  }
+  .lp-placar{font-size:.8rem;}
+
+  /* Inputs maiores para toque */
+  input,select{
+    padding:13px;
+    font-size:1rem;
+  }
+  .placar-inputs input{width:58px;font-size:1.3rem;}
+
+  /* Botões com área de toque maior */
+  .btn{padding:15px;font-size:1rem;}
+  .btn-confirmar-grande{padding:16px;}
+
+  /* Popup ocupa mais tela */
+  .popup-box{
+    padding:20px 16px;
+    max-width:100%;
+    margin:0;
+    border-radius:20px 20px 0 0;
+  }
+  .popup-overlay{
+    align-items:flex-end;
+    padding:0;
+  }
+  .popup-ganho-valor{font-size:2rem;}
+
+  /* Pix box mais legível */
+  .pix-box{padding:12px;}
+  .pix-box code{font-size:.82rem;}
+
+  /* Premio box */
+  .premio-valor{font-size:1.3rem;}
+
+  /* Pendentes */
+  .pendente-card{padding:10px;}
+  .pendente-nome{font-size:.9rem;}
+
+  /* Tabs admin */
+  .tabs-admin button{font-size:.72rem;padding:8px 4px;}
+
+  /* Toast mais visível */
+  .toast{
+    left:12px;right:12px;
+    transform:none;
+    text-align:center;
+    font-size:.9rem;
+    bottom:80px;
+  }
+  .toast.show{bottom:85px;}
+
+  /* Status badges menores */
+  .status-pago,.status-pendente{font-size:.65rem;}
+
+  /* Meta row wrap melhor */
+  .meta-row{gap:4px;}
+}
 </style>
 </head>
 <body>
@@ -686,6 +793,10 @@ function renderDetalheJogo(id){
       <input type="number" min="0" id="palpiteB" placeholder="0">
       <span style="font-weight:700;font-size:.8rem">${j.timeB}</span>
     </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:12px 0;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--texto)">
+      <input type="checkbox" id="modoMultiplo" style="width:18px;height:18px;margin:0;accent-color:var(--verde);cursor:pointer">
+      Quero dar mais de um palpite (manter nome e telefone)
+    </label>
     <button class="btn btn-primary" id="btnEnviarPalpite">Confirmar palpite</button>
   </div>` : ''}
   ${j.status!=='encerrado' && jogoFechadoPorTempo(j) ? `
@@ -716,6 +827,8 @@ function renderDetalheJogo(id){
 
 /* Guarda dados temporários do palpite pra mostrar Pix depois de enviar */
 let palpitePendenteId = null;
+let _nomeGuardado = '';
+let _telefoneGuardado = '';
 
 function bindEvents(){
   const btnVoltar = document.getElementById('btnVoltarJogos');
@@ -871,10 +984,15 @@ function enviarPalpite(){
   const telefone = document.getElementById('palpiteTelefone').value.trim();
   const placarA = document.getElementById('palpiteA').value;
   const placarB = document.getElementById('palpiteB').value;
+  const modoMultiplo = document.getElementById('modoMultiplo')?.checked || false;
 
   if(!nome || !telefone){ toast('Preencha nome e telefone'); return; }
   if(placarA==='' || placarB===''){ toast('Preencha o placar do seu palpite'); return; }
   fecharPopupGanho();
+
+  // guarda para reaproveitar se modo múltiplo
+  _nomeGuardado = modoMultiplo ? nome : '';
+  _telefoneGuardado = modoMultiplo ? telefone : '';
 
   const novo = {
     jogoId: jogoSelecionado,
@@ -886,9 +1004,39 @@ function enviarPalpite(){
   const ref = db.ref('palpites').push();
   ref.set(novo).then(()=>{
     palpitePendenteId = ref.key;
-    render();
-    mostrarPix();
+    if(modoMultiplo){
+      mostrarConfirmacaoMultipla(nome, placarA, placarB);
+    } else {
+      render();
+      mostrarPix();
+    }
   });
+}
+
+function mostrarConfirmacaoMultipla(nome, placarA, placarB){
+  const j = jogosCache[jogoSelecionado];
+  const app = document.getElementById('app');
+  app.innerHTML = `
+  <div class="card" style="text-align:center">
+    <div style="font-size:2rem">✅</div>
+    <h3 style="margin:8px 0 4px">Palpite registrado!</h3>
+    <p style="font-size:.85rem;color:var(--cinza);margin-bottom:16px">${nome} — ${placarA} x ${placarB}</p>
+    <button class="btn btn-primary" id="btnMaisUm" style="margin-bottom:10px">➕ Dar mais um palpite</button>
+    <button class="btn btn-secondary" id="btnVerPix">💰 Ver dados do Pix para pagar</button>
+  </div>`;
+  document.getElementById('btnMaisUm').onclick = ()=>{
+    render();
+    // preenche nome e telefone automaticamente
+    setTimeout(()=>{
+      const n = document.getElementById('palpiteNome');
+      const t = document.getElementById('palpiteTelefone');
+      const m = document.getElementById('modoMultiplo');
+      if(n) n.value = _nomeGuardado;
+      if(t) t.value = _telefoneGuardado;
+      if(m) m.checked = true;
+    }, 50);
+  };
+  document.getElementById('btnVerPix').onclick = ()=>{ render(); mostrarPix(); };
 }
 
 function mostrarPix(){
@@ -917,7 +1065,17 @@ function mostrarPix(){
     </div>
   </div>`;
   document.getElementById('btnVoltarAposPix').onclick = ()=>{ jogoSelecionado=null; render(); };
-  document.getElementById('btnOutroPalpite').onclick = ()=>{ render(); };
+  document.getElementById('btnOutroPalpite').onclick = ()=>{
+    render();
+    setTimeout(()=>{
+      const n = document.getElementById('palpiteNome');
+      const t = document.getElementById('palpiteTelefone');
+      const m = document.getElementById('modoMultiplo');
+      if(n && _nomeGuardado) n.value = _nomeGuardado;
+      if(t && _telefoneGuardado) t.value = _telefoneGuardado;
+      if(m && (_nomeGuardado || _telefoneGuardado)) m.checked = true;
+    }, 50);
+  };
 }
 
 /* ===================== MEUS PALPITES ===================== */
