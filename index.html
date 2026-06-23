@@ -644,8 +644,6 @@ function renderDetalheJogo(id){
     </div>
   </div>
 
-  ${j.status!=='encerrado' ? renderContagemRegressiva(j, id) : ''}
-
   <div class="card mesa-destaque">
     <div class="mesa-row">
       <div class="mesa-item">
@@ -653,6 +651,11 @@ function renderDetalheJogo(id){
         <span class="mesa-valor">${formatBRL(arrecadado)}</span>
         <span class="mesa-sub">${pagos.length} pago(s) confirmado(s)</span>
       </div>
+      ${j.status!=='encerrado' ? `<div class="mesa-item mesa-contagem-inline">
+        <span class="mesa-label">⏱️ Tempo restante</span>
+        <span class="mesa-valor mesa-contagem-valor" data-contagem="${id}" style="font-size:1.3rem;color:var(--vermelho)">${fmtContagem(tempoRestanteMs(j))}</span>
+        <span class="mesa-sub">até o jogo começar</span>
+      </div>` : ''}
       <div class="mesa-item">
         <span class="mesa-label">🏆 Prêmio (80%)</span>
         <span class="mesa-valor mesa-premio">${formatBRL(premioTotal)}</span>
