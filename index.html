@@ -156,6 +156,11 @@ label{font-size:.78rem;font-weight:700;color:var(--cinza);display:block;margin-b
   font-size:.88rem;
 }
 .palpite-item:last-child{border-bottom:none;}
+.status-pendente{
+  font-size:.7rem;font-weight:700;color:#b45309;
+  background:#fef3c7;border-radius:20px;
+  padding:2px 8px;white-space:nowrap;
+}
 .status-pago{color:var(--verde);font-weight:700;font-size:.72rem;}
 .status-pendente{color:#e8a317;font-weight:700;font-size:.72rem;}
 .pix-box{
@@ -688,18 +693,18 @@ function renderDetalheJogo(id){
   </div>` : ''}
 
   <div class="card">
-    <h3 style="margin-bottom:8px;font-size:1rem">📋 Lista de apostadores confirmados (${pagos.length})</h3>
+    <h3 style="margin-bottom:8px;font-size:1rem">📋 Lista de apostadores (${palpitesDoJogo.length})</h3>
     <div class="lista-papel">
-      ${pagos.length===0 ? '<div class="empty">Nenhum pagamento confirmado ainda. Seja o primeiro!</div>' :
+      ${palpitesDoJogo.length===0 ? '<div class="empty">Nenhum palpite ainda. Seja o primeiro!</div>' :
         `<div class="lista-papel-header">
           <span>Nº</span><span>Palpite</span><span>Nome</span><span>Status</span>
         </div>` +
-        pagos.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
+        palpitesDoJogo.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
           <div class="lista-papel-row">
             <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
             <span class="lp-placar">${p.placarA} x ${p.placarB}</span>
-            <span class="lp-nome">${p.nome}</span>
-            <span class="status-pago">✓ PAGO</span>
+            <span class="lp-nome">${p.pago ? p.nome : '🔍'}</span>
+            <span class="${p.pago ? 'status-pago' : 'status-pendente'}">${p.pago ? '✓ PAGO' : 'Pendente'}</span>
           </div>`).join('')}
     </div>
   </div>
