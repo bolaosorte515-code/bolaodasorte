@@ -337,12 +337,40 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
   box-shadow:0 6px 24px rgba(13,138,62,.35);
   border:1px solid rgba(255,255,255,.08);
 }
-.mesa-row{display:flex;gap:12px;}
+.mesa-row{display:flex;gap:12px;align-items:center;}
 .mesa-item{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;}
 .mesa-label{font-size:.72rem;color:#d4f4dd;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
 .mesa-valor{font-size:1.7rem;font-weight:900;color:#fff;margin:4px 0;}
 .mesa-valor.mesa-premio{color:var(--amarelo);}
 .mesa-sub{font-size:.68rem;color:#d4f4dd;}
+/* Mesa layout: esquerda grande + direita info */
+.mesa-layout{
+  display:flex;gap:14px;align-items:center;
+}
+.mesa-esquerda{
+  flex:1.2;border-right:1px solid rgba(255,255,255,.15);
+  padding-right:14px;
+}
+.mesa-direita{
+  flex:1;display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center;
+}
+.mesa-acumulada-label{
+  font-size:.7rem;color:#d4f4dd;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;
+}
+.mesa-acumulada-valor{
+  font-size:2.6rem;font-weight:900;color:#fff;
+  line-height:1;letter-spacing:-1px;
+  text-shadow:0 2px 12px rgba(0,0,0,.3);
+}
+.mesa-acumulada-sub{
+  font-size:.72rem;color:#a8e6c0;margin-top:8px;
+}
+.mesa-premio-bloco{text-align:center;}
+.mesa-premio-label{font-size:.68rem;color:#d4f4dd;font-weight:700;text-transform:uppercase;letter-spacing:.3px;}
+.mesa-premio-valor{font-size:1.4rem;font-weight:900;color:var(--amarelo);margin:3px 0;}
+.mesa-premio-taxa{font-size:.65rem;color:#a8d8b8;}
+.mesa-contagem-bloco{text-align:center;}
 .mesa-rifa-aviso{
   margin-top:12px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);
   text-align:center;font-size:.74rem;color:#fffbea;
@@ -888,21 +916,23 @@ function renderDetalheJogo(id){
   </div>
 
   <div class="card mesa-destaque">
-    <div class="mesa-row">
-      <div class="mesa-item">
-        <span class="mesa-label">💰 Mesa acumulada</span>
-        <span class="mesa-valor">${formatBRL(arrecadado)}</span>
-        <span class="mesa-sub">${pagos.length} pago(s) confirmado(s)</span>
+    <div class="mesa-layout">
+      <div class="mesa-esquerda">
+        <div class="mesa-acumulada-label">💰 Mesa acumulada</div>
+        <div class="mesa-acumulada-valor">${formatBRL(arrecadado)}</div>
+        <div class="mesa-acumulada-sub">${pagos.length} pago(s) confirmado(s)</div>
       </div>
-      ${j.status!=='encerrado' ? `<div class="mesa-item mesa-contagem-inline">
-        <span class="mesa-label">⏱️ Tempo restante</span>
-        <span class="mesa-valor mesa-contagem-valor" data-contagem="${id}" style="font-size:1.3rem;color:var(--vermelho)">${fmtContagem(tempoRestanteMs(j))}</span>
-        <span class="mesa-sub">até o jogo começar</span>
-      </div>` : ''}
-      <div class="mesa-item">
-        <span class="mesa-label">🏆 Prêmio (80%)</span>
-        <span class="mesa-valor mesa-premio">${formatBRL(premioTotal)}</span>
-        <span class="mesa-sub">20% fica com a organização</span>
+      <div class="mesa-direita">
+        <div class="mesa-premio-bloco">
+          <div class="mesa-premio-label">🏆 Prêmio</div>
+          <div class="mesa-premio-valor">${formatBRL(premioTotal)}</div>
+          <div class="mesa-premio-taxa">80% do total<br>20% fica com a organização</div>
+        </div>
+        ${j.status!=='encerrado' ? `<div class="mesa-contagem-bloco">
+          <div class="mesa-premio-label">⏱️ Tempo restante</div>
+          <div class="mesa-valor mesa-contagem-valor" data-contagem="${id}" style="font-size:1.3rem;color:#ffcc29;margin:3px 0">${fmtContagem(tempoRestanteMs(j))}</div>
+          <div class="mesa-premio-taxa">até o jogo começar</div>
+        </div>` : ''}
       </div>
     </div>
     <div class="mesa-rifa-aviso">🎟️ Se ninguém acertar o palpite, o dinheiro será sorteado entre os participantes.</div>
