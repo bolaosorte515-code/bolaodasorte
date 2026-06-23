@@ -24,34 +24,46 @@
 }
 
 /* ===== DARK MODE ===== */
-@media (prefers-color-scheme:dark){
-  :root{
-    --bg:#0f1117;
-    --card:#1a1d26;
-    --texto:#f0f2f5;
-    --cinza:#9ca3af;
-    --sombra:0 4px 16px rgba(0,0,0,.4);
-    --sombra-hover:0 8px 28px rgba(0,0,0,.6);
-  }
-  nav{background:#1a1d26;border-bottom:1px solid #2a2d3a;}
-  input,select,textarea{background:#12151e!important;color:#f0f2f5!important;border-color:#2a2d3a!important;}
-  .lista-papel{border-color:#2a2d3a;}
-  .lista-papel-header{background:#12151e;}
-  .lista-papel-row{border-color:#2a2d3a;}
-  .pendente-card{background:#1e1f2a;border-color:#3a3000;}
-  .tabs-admin button{background:#12151e;border-color:#2a2d3a;color:var(--cinza);}
-  .btn-secondary{background:#2a2d3a;color:var(--texto);}
-  .popup-box{background:#1a1d26;}
-  .popup-detalhe{background:#12151e;}
-  .pix-box{background:#1a1500;}
-  .pix-box code{background:#12151e;border-color:#2a2d3a;}
-  .preview-box{background:#0d2018;border-color:var(--verde);}
-  footer{border-top:1px solid #2a2d3a;}
-  .badge.aberto{background:#0d3320;color:#4ade80;}
-  .badge.encerrado{background:#3a0d0d;color:#f87171;}
-  .jogo-card{border:1.5px solid #2a2d3a;}
-  .mini-contagem{border-color:#2a2d3a;}
+/* ===== DARK MODE via classe .dark no body ===== */
+body.dark{
+  --bg:#0f1117;
+  --card:#1a1d26;
+  --texto:#f0f2f5;
+  --cinza:#9ca3af;
+  --sombra:0 4px 16px rgba(0,0,0,.4);
+  --sombra-hover:0 8px 28px rgba(0,0,0,.6);
 }
+body.dark nav{background:#1a1d26;border-bottom:1px solid #2a2d3a;}
+body.dark input,body.dark select,body.dark textarea{background:#12151e!important;color:#f0f2f5!important;border-color:#2a2d3a!important;}
+body.dark .lista-papel{border-color:#2a2d3a;}
+body.dark .lista-papel-header{background:#12151e;}
+body.dark .lista-papel-row{border-color:#2a2d3a;}
+body.dark .pendente-card{background:#1e1f2a;border-color:#3a3000;}
+body.dark .tabs-admin button{background:#12151e;border-color:#2a2d3a;color:var(--cinza);}
+body.dark .btn-secondary{background:#2a2d3a;color:var(--texto);}
+body.dark .popup-box{background:#1a1d26;}
+body.dark .popup-detalhe{background:#12151e;}
+body.dark .pix-box{background:#1a1500;}
+body.dark .pix-box code{background:#12151e;border-color:#2a2d3a;}
+body.dark .preview-box{background:#0d2018;border-color:var(--verde);}
+body.dark footer{border-top:1px solid #2a2d3a;}
+body.dark .badge.aberto{background:#0d3320;color:#4ade80;}
+body.dark .badge.encerrado{background:#3a0d0d;color:#f87171;}
+body.dark .jogo-card{border:1.5px solid #2a2d3a;}
+body.dark .mini-contagem{border-color:#2a2d3a;}
+body.dark .aviso-duplicado{background:#1a1500;border-color:#5a4500;color:#fcd34d;}
+
+/* Botão de tema */
+#btnTema{
+  background:none;border:1.5px solid #e0e3e8;
+  color:var(--cinza);border-radius:20px;padding:6px 14px;
+  font-size:.82rem;font-weight:700;cursor:pointer;
+  transition:.2s;white-space:nowrap;margin-left:auto;
+}
+#btnTema:hover{background:#f0f2f5;color:var(--texto);}
+body.dark #btnTema{border-color:#3a3d4a;color:#9ca3af;}
+body.dark #btnTema:hover{background:#2a2d3a;color:#f0f2f5;}
+body.dark nav{background:#1a1d26;}
 
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -628,6 +640,7 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
 <nav id="navMenu">
   <button data-view="jogos" class="active">Jogos</button>
   <button data-view="meus">Meus Palpites</button>
+  <button id="btnTema">🌙 Escuro</button>
 </nav>
 
 <main id="app"></main>
@@ -1807,6 +1820,31 @@ function sortearGanhador(jogoId){
     render();
   });
 }
+
+/* ===================== TEMA CLARO/ESCURO ===================== */
+(function(){
+  // Padrão: claro — só aplica dark se o usuário escolheu explicitamente
+  const salvo = localStorage.getItem('bolao_tema');
+  if(salvo === 'dark') document.body.classList.add('dark');
+  function atualizarBotao(){
+    const btn = document.getElementById('btnTema');
+    if(!btn) return;
+    const isDark = document.body.classList.contains('dark');
+    btn.textContent = isDark ? '☀️ Claro' : '🌙 Escuro';
+  }
+  document.addEventListener('click', e=>{
+    if(e.target.id === 'btnTema'){
+      document.body.classList.toggle('dark');
+      const isDark = document.body.classList.contains('dark');
+      localStorage.setItem('bolao_tema', isDark ? 'dark' : 'light');
+      atualizarBotao();
+    }
+  });
+  // Atualiza botão após render
+  const _renderOrig = window.render;
+  setTimeout(atualizarBotao, 100);
+  document.addEventListener('DOMContentLoaded', atualizarBotao);
+})();
 
 /* ===================== INIT ===================== */
 render();
