@@ -51,7 +51,22 @@ body.dark .badge.aberto{background:#0d3320;color:#4ade80;}
 body.dark .badge.encerrado{background:#3a0d0d;color:#f87171;}
 body.dark .jogo-card{border:1.5px solid #2a2d3a;}
 body.dark .mini-contagem{border-color:#2a2d3a;}
-body.dark .aviso-duplicado{background:#1a1500;border-color:#5a4500;color:#fcd34d;}
+body.dark /* Modal editar jogo */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:3000;display:flex;align-items:center;justify-content:center;
+  padding:16px;animation:fadeIn .2s ease;
+}
+.modal-box{
+  background:var(--card);border-radius:18px;
+  padding:24px;width:100%;max-width:420px;
+  box-shadow:0 8px 40px rgba(0,0,0,.3);
+  animation:fadeUp .25s ease;
+}
+.modal-box h3{margin-bottom:16px;font-size:1rem;}
+.modal-box input,.modal-box select{margin-bottom:10px;}
+.modal-acoes{display:flex;gap:8px;margin-top:6px;}
+.aviso-duplicado{background:#1a1500;border-color:#5a4500;color:#fcd34d;}
 
 /* Botão de tema */
 #btnTema{
@@ -1240,6 +1255,9 @@ function bindEvents(){
   document.querySelectorAll('.btn-excluir-jogo').forEach(b=>{
     b.onclick = ()=> excluirJogo(b.dataset.jogo);
   });
+  document.querySelectorAll('.btn-editar-jogo').forEach(b=>{
+    b.onclick = ()=> abrirModalEditarJogo(b.dataset.jogo);
+  });
   document.querySelectorAll('.btn-editar-bandeira').forEach(b=>{
     b.onclick = ()=> editarBandeira(b.dataset.jogo);
   });
@@ -1723,12 +1741,14 @@ function renderAdminNovoJogo(){
     <h3 style="margin-bottom:8px;font-size:1rem">Jogos cadastrados</h3>
     ${Object.keys(jogosCache).length===0 ? '<div class="empty">Nenhum jogo ainda.</div>' :
       Object.entries(jogosCache).sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0)).map(([id,j])=>`
-        <div class="palpite-item">
-          <span>${j.timeA} x ${j.timeB} — ${formatBRL(j.valor)}</span>
-          <span>
-            <button class="btn-editar-bandeira" data-jogo="${id}" style="background:none;border:none;color:var(--azul);cursor:pointer;font-size:.78rem;font-weight:700;margin-right:10px">Trocar imagem</button>
-            <button class="btn-excluir-jogo" data-jogo="${id}" style="background:none;border:none;color:var(--vermelho);cursor:pointer;font-size:.78rem;font-weight:700">Excluir</button>
-          </span>
+        <div class="palpite-item" style="flex-direction:column;align-items:flex-start;gap:6px">
+          <span style="font-weight:700">${j.timeA} x ${j.timeB}</span>
+          <span style="font-size:.78rem;color:var(--cinza)">${formatBRL(j.valor)} · ${j.data||''} ${j.hora||''}</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-editar-jogo" data-jogo="${id}" style="background:var(--azul);color:#fff;border:none;border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.78rem;font-weight:700">✏️ Editar</button>
+            <button class="btn-editar-bandeira" data-jogo="${id}" style="background:none;border:1px solid var(--azul);color:var(--azul);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.78rem;font-weight:700">🖼️ Imagem</button>
+            <button class="btn-excluir-jogo" data-jogo="${id}" style="background:none;border:1px solid var(--vermelho);color:var(--vermelho);border-radius:8px;padding:5px 12px;cursor:pointer;font-size:.78rem;font-weight:700">🗑️ Excluir</button>
+          </div>
         </div>`).join('')}
   </div>
   `;
@@ -1793,6 +1813,56 @@ function editarBandeira(id){
     imagemA: novaA.trim() || null,
     imagemB: novaB.trim() || null
   }).then(()=>toast('Imagem(ns) atualizada(s)!'));
+}
+
+function abrirModalEditarJogo(id){
+  const j = jogosCache[id];
+  if(!j) return;
+  // Remove modal anterior se houver
+  document.getElementById('modalEditarJogo')?.remove();
+  const div = document.createElement('div');
+  div.id = 'modalEditarJogo';
+  div.className = 'modal-overlay';
+  div.innerHTML = `
+    <div class="modal-box">
+      <h3>✏️ Editar jogo</h3>
+      <label>Time A</label>
+      <input id="editTimeA" value="${j.timeA||''}">
+      <label>Time B</label>
+      <input id="editTimeB" value="${j.timeB||''}">
+      <label>Valor da aposta (R$)</label>
+      <input id="editValor" type="number" step="0.01" value="${j.valor||''}">
+      <label>Data</label>
+      <input id="editData" type="date" value="${j.data||''}">
+      <label>Horário</label>
+      <input id="editHora" type="time" value="${j.hora||''}">
+      <label>Status</label>
+      <select id="editStatus">
+        <option value="aberto" ${j.status==='aberto'?'selected':''}>Aberto</option>
+        <option value="encerrado" ${j.status==='encerrado'?'selected':''}>Encerrado</option>
+      </select>
+      <div class="modal-acoes">
+        <button class="btn btn-secondary" id="btnCancelarEdit" style="flex:1">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarEdit" style="flex:2">💾 Salvar alterações</button>
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  document.getElementById('btnCancelarEdit').onclick = ()=> div.remove();
+  div.addEventListener('click', e=>{ if(e.target===div) div.remove(); });
+  document.getElementById('btnSalvarEdit').onclick = ()=>{
+    const timeA = document.getElementById('editTimeA').value.trim();
+    const timeB = document.getElementById('editTimeB').value.trim();
+    const valor = parseFloat(document.getElementById('editValor').value);
+    const data  = document.getElementById('editData').value;
+    const hora  = document.getElementById('editHora').value;
+    const status = document.getElementById('editStatus').value;
+    if(!timeA||!timeB||!valor||!data){ toast('Preencha todos os campos'); return; }
+    db.ref('jogos/'+id).update({ timeA, timeB, valor, data, hora, status }).then(()=>{
+      toast('✅ Jogo atualizado!');
+      div.remove();
+      render();
+    });
+  };
 }
 
 function excluirJogo(id){
