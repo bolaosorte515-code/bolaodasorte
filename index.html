@@ -1448,7 +1448,7 @@ function mostrarPix(){
 function compartilharJogo(jogoId, rede){
   const j = jogosCache[jogoId];
   if(!j) return;
-  const url = window.location.href.split('?')[0];
+  const url = 'https://bolaosorte515-code.github.io/bolaodasorte/';
   const texto = `⚽ *Bolão da Sorte!*
 ${j.timeA} x ${j.timeB}
 📅 ${j.data ? new Date(j.data+'T12:00').toLocaleDateString('pt-BR') : ''} ${j.hora||''}
