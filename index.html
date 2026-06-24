@@ -245,6 +245,28 @@ main{max-width:780px;margin:0 auto;padding:16px;}
   letter-spacing:1px;font-variant-numeric:tabular-nums;
 }
 .contagem-sub{font-size:.74rem;color:var(--cinza);margin-top:2px;}
+/* Compartilhamento */
+.share-row{
+  display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;
+  justify-content:center;
+}
+.btn-share{
+  display:flex;align-items:center;gap:6px;
+  border:none;border-radius:20px;padding:8px 16px;
+  font-size:.82rem;font-weight:700;cursor:pointer;
+  transition:.2s;flex:1;justify-content:center;min-width:100px;
+}
+.btn-share:active{transform:scale(.96);}
+.btn-share-wpp{background:#25D366;color:#fff;}
+.btn-share-wpp:hover{background:#1ebe5d;}
+.btn-share-ig{background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);color:#fff;}
+.btn-share-ig:hover{filter:brightness(1.1);}
+.btn-share-fb{background:#1877F2;color:#fff;}
+.btn-share-fb:hover{background:#1565d8;}
+.btn-share-copy{background:#f0f2f5;color:var(--texto);border:1.5px solid #e0e3e8;}
+.btn-share-copy:hover{background:#e2e5ea;}
+body.dark .btn-share-copy{background:#2a2d3a;color:#f0f2f5;border-color:#3a3d4a;}
+.share-titulo{font-size:.72rem;color:var(--cinza);font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:center;margin-top:14px;margin-bottom:6px;}
 
 /* Timer piscando quando < 1 hora */
 @keyframes piscar{
@@ -945,6 +967,25 @@ function renderListaJogos(){
       <button class="btn btn-primary btn-jogar" data-jogo="${id}">
         ${j.status==='encerrado' ? '🏆 Ver resultado' : (fechadoPorTempo ? '🔒 Ver bolão' : '⚽ JOGAR')}
       </button>
+      ${j.status!=='encerrado' && !fechadoPorTempo ? `
+      <div class="share-titulo">📢 Convidar amigos</div>
+      <div class="share-row">
+        <button class="btn-share btn-share-wpp" onclick="event.stopPropagation();compartilharJogo('${id}','wpp')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.091.535 4.06 1.471 5.777L.057 24l6.344-1.385A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.809 9.809 0 01-5.003-1.368l-.36-.214-3.72.813.838-3.617-.235-.374A9.817 9.817 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182c5.43 0 9.818 4.388 9.818 9.818 0 5.43-4.388 9.818-9.818 9.818z"/></svg>
+          WhatsApp
+        </button>
+        <button class="btn-share btn-share-ig" onclick="event.stopPropagation();compartilharJogo('${id}','ig')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+          Instagram
+        </button>
+        <button class="btn-share btn-share-fb" onclick="event.stopPropagation();compartilharJogo('${id}','fb')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </button>
+        <button class="btn-share btn-share-copy" onclick="event.stopPropagation();compartilharJogo('${id}','copy')">
+          🔗 Copiar link
+        </button>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1348,7 +1389,25 @@ function mostrarPix(){
     </div>
     <p style="font-size:.8rem;color:var(--cinza)">Depois de pagar, envie o comprovante para o organizador confirmar. Você pode acompanhar o status em "Meus Palpites".</p>
     <p style="font-size:.78rem;color:var(--cinza);margin-top:8px">🎟️ Se ninguém acertar o palpite, o dinheiro será sorteado entre os participantes.</p>
-    <div style="display:flex;gap:8px;margin-top:14px">
+    <div class="share-titulo">📢 Chame seus amigos para jogar também!</div>
+    <div class="share-row" style="margin-bottom:14px">
+      <button class="btn-share btn-share-wpp" onclick="compartilharJogo('${jogoSelecionado}','wpp')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.091.535 4.06 1.471 5.777L.057 24l6.344-1.385A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.809 9.809 0 01-5.003-1.368l-.36-.214-3.72.813.838-3.617-.235-.374A9.817 9.817 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182c5.43 0 9.818 4.388 9.818 9.818 0 5.43-4.388 9.818-9.818 9.818z"/></svg>
+        WhatsApp
+      </button>
+      <button class="btn-share btn-share-ig" onclick="compartilharJogo('${jogoSelecionado}','ig')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+        Instagram
+      </button>
+      <button class="btn-share btn-share-fb" onclick="compartilharJogo('${jogoSelecionado}','fb')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+        Facebook
+      </button>
+      <button class="btn-share btn-share-copy" onclick="compartilharJogo('${jogoSelecionado}','copy')">
+        🔗 Copiar link
+      </button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
       <button class="btn btn-secondary" id="btnOutroPalpite">Dar outro palpite neste jogo</button>
       <button class="btn btn-primary" id="btnVoltarAposPix">OK, entendi</button>
     </div>
@@ -1365,6 +1424,34 @@ function mostrarPix(){
       if(m && (_nomeGuardado || _telefoneGuardado)) m.checked = true;
     }, 50);
   };
+}
+
+/* ===================== COMPARTILHAMENTO ===================== */
+function compartilharJogo(jogoId, rede){
+  const j = jogosCache[jogoId];
+  if(!j) return;
+  const url = window.location.href.split('?')[0];
+  const texto = `⚽ *Bolão da Sorte!*
+${j.timeA} x ${j.timeB}
+📅 ${j.data ? new Date(j.data+'T12:00').toLocaleDateString('pt-BR') : ''} ${j.hora||''}
+💰 Aposta: R$ ${Number(j.valor).toFixed(2).replace('.',',')}
+
+🔥 Participe: ${url}`;
+
+  if(rede === 'wpp'){
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  } else if(rede === 'fb'){
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(texto)}`, '_blank');
+  } else if(rede === 'ig'){
+    // Instagram não tem API de compartilhamento direto — copia o texto e avisa
+    navigator.clipboard.writeText(texto).then(()=>{
+      toast('📋 Texto copiado! Cole no seu story ou post do Instagram');
+    });
+  } else if(rede === 'copy'){
+    navigator.clipboard.writeText(texto).then(()=>{
+      toast('🔗 Link e texto copiados!');
+    });
+  }
 }
 
 /* ===================== MEUS PALPITES ===================== */
