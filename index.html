@@ -51,7 +51,7 @@ body.dark .badge.aberto{background:#0d3320;color:#4ade80;}
 body.dark .badge.encerrado{background:#3a0d0d;color:#f87171;}
 body.dark .jogo-card{border:1.5px solid #2a2d3a;}
 body.dark .mini-contagem{border-color:#2a2d3a;}
-body.dark /* Modal editar jogo */
+/* Modal editar jogo */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.6);
   z-index:3000;display:flex;align-items:center;justify-content:center;
@@ -66,6 +66,9 @@ body.dark /* Modal editar jogo */
 .modal-box h3{margin-bottom:16px;font-size:1rem;}
 .modal-box input,.modal-box select{margin-bottom:10px;}
 .modal-acoes{display:flex;gap:8px;margin-top:6px;}
+body.dark .modal-overlay{background:rgba(0,0,0,.75);}
+body.dark .modal-box{background:#1a1d26;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+body.dark .modal-acoes .btn-secondary{background:#2a2d3a;color:#f0f2f5;}
 .aviso-duplicado{background:#1a1500;border-color:#5a4500;color:#fcd34d;}
 
 /* Botão de tema */
@@ -979,7 +982,7 @@ function renderListaJogos(){
         <span class="badge ${aberto?'aberto':'encerrado'}">${j.status==='encerrado'?'Encerrado':(fechadoPorTempo?'Fechado p/ apostas':'Aberto')}</span>
       </div>
       ${j.status!=='encerrado' && !fechadoPorTempo ? `<div class="mini-contagem" data-contagem="${id}">⏱️ ${fmtContagem(restante)}</div>` : ''}
-      <button class="btn btn-primary btn-jogar" data-jogo="${id}">
+      <button class="btn btn-primary btn-jogar" data-jogo="${id}" onclick="event.stopPropagation();jogoSelecionado='${id}';render()">
         ${j.status==='encerrado' ? '🏆 Ver resultado' : (fechadoPorTempo ? '🔒 Ver bolão' : '⚽ JOGAR')}
       </button>
       ${j.status!=='encerrado' && !fechadoPorTempo ? `
@@ -1100,31 +1103,32 @@ function renderDetalheJogo(id){
 
   ${j.status!=='encerrado' && !jogoFechadoPorTempo(j) ? `
   <div class="card">
-    <h3 style="margin-bottom:12px;font-size:1rem">📝 Dar palpite</h3>
-    <div class="field">
-      <label>Seu nome</label>
-      <input type="text" id="palpiteNome" placeholder="Nome completo">
-    </div>
-    <div class="field">
-      <label>Telefone (WhatsApp)</label>
-      <input type="text" id="palpiteTelefone" placeholder="(00) 00000-0000">
-    </div>
-    <label>Seu palpite de placar</label>
-    <div class="placar-inputs">
+    <h3 style="margin-bottom:4px;font-size:1rem">⚽ Dar palpite</h3>
+    <p style="font-size:.8rem;color:var(--cinza);margin-bottom:14px">Passo 1 de 2 — escolha o placar e preencha seus dados. O palpite só vale após o pagamento via Pix.</p>
+    <label>Qual será o placar final?</label>
+    <div class="placar-inputs" style="margin-bottom:14px">
       <span style="font-weight:700;font-size:.8rem">${j.timeA}</span>
       <input type="number" min="0" id="palpiteA" placeholder="0">
       <span style="font-weight:800">x</span>
       <input type="number" min="0" id="palpiteB" placeholder="0">
       <span style="font-weight:700;font-size:.8rem">${j.timeB}</span>
     </div>
-    <label style="display:flex;align-items:center;gap:8px;margin:12px 0;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--texto)">
+    <div class="field">
+      <label>Seu nome</label>
+      <input type="text" id="palpiteNome" placeholder="Nome completo">
+    </div>
+    <div class="field">
+      <label>WhatsApp (para confirmação)</label>
+      <input type="tel" id="palpiteTelefone" placeholder="(00) 00000-0000">
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0 14px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--texto)">
       <input type="checkbox" id="modoMultiplo" style="width:18px;height:18px;margin:0;accent-color:var(--verde);cursor:pointer">
-      Quero dar mais de um palpite (manter nome e telefone)
+      Quero dar mais de um palpite neste jogo
     </label>
     <div id="avisoDuplicado" class="aviso-duplicado" style="display:none">
-      ⚠️ Você já registrou este placar exato. Escolha um placar diferente ou continue com outro.
+      ⚠️ Você já apostou neste placar com este telefone. Escolha um placar diferente.
     </div>
-    <button class="btn btn-primary" id="btnEnviarPalpite">Confirmar palpite</button>
+    <button class="btn btn-primary" id="btnEnviarPalpite">Avançar para o Pix →</button>
   </div>` : ''}
   ${j.status!=='encerrado' && jogoFechadoPorTempo(j) ? `
   <div class="card" style="text-align:center;border:1.5px solid var(--vermelho)">
@@ -1140,13 +1144,15 @@ function renderDetalheJogo(id){
         `<div class="lista-papel-header">
           <span>Nº</span><span>Palpite</span><span>Nome</span><span>Status</span>
         </div>` +
-        palpitesDoJogo.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>`
-          <div class="lista-papel-row">
+        palpitesDoJogo.sort((a,b)=>(a[1].criadoEm||0)-(b[1].criadoEm||0)).map(([_,p],i)=>{
+          const qtdMesmoPlacar = palpitesDoJogo.filter(([_,x])=>x.placarA===p.placarA && x.placarB===p.placarB).length;
+          const disputaHtml = qtdMesmoPlacar>1 ? ` <span title="${qtdMesmoPlacar} apostaram neste placar" style="font-size:.65rem;color:var(--azul);cursor:help">[${qtdMesmoPlacar}]</span>` : '';
+          return `<div class="lista-papel-row">
             <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
-            <span class="lp-placar">${p.placarA} x ${p.placarB}</span>
+            <span class="lp-placar">${p.placarA} x ${p.placarB}${disputaHtml}</span>
             <span class="lp-nome">${p.nome}</span>
             <span class="${p.pago ? 'status-pago' : 'status-pendente'}">${p.pago ? '✓ PAGO' : 'Pendente'}</span>
-          </div>`).join('')}
+          </div>`;}).join('')}
     </div>
     <div class="share-titulo" style="margin-top:14px">📢 Compartilhar este bolão</div>
     <div class="share-row">
@@ -1270,7 +1276,7 @@ function atualizarPreviewGanho(jogoId){
   clearTimeout(timeoutPreviewGanho);
   if(a==='' || b===''){ fecharPopupGanho(); return; }
   // pequeno debounce pra não abrir popup a cada tecla, só quando a pessoa pausa de digitar
-  timeoutPreviewGanho = setTimeout(()=> mostrarPopupGanho(jogoId, a, b), 450);
+  timeoutPreviewGanho = setTimeout(()=> mostrarPopupGanho(jogoId, a, b), 180);
 }
 
 function mostrarPopupGanho(jogoId, a, b){
@@ -1329,21 +1335,24 @@ function enviarPalpite(){
     return;
   }
   const nome = document.getElementById('palpiteNome').value.trim();
-  const telefone = document.getElementById('palpiteTelefone').value.trim();
+  const telefoneRaw = document.getElementById('palpiteTelefone').value.trim();
+  // Normaliza: só dígitos, garante 55 + DDD + número
+  const telefone = telefoneRaw.replace(/\D/g,'').replace(/^55/,'').replace(/^0/,'');
   const placarA = document.getElementById('palpiteA').value;
   const placarB = document.getElementById('palpiteB').value;
   const modoMultiplo = document.getElementById('modoMultiplo')?.checked || false;
 
-  if(!nome || !telefone){ toast('Preencha nome e telefone'); return; }
+  if(!nome || !telefone || telefone.length < 10){ toast('Preencha nome e WhatsApp válido'); return; }
   if(placarA==='' || placarB===''){ toast('Preencha o placar do seu palpite'); return; }
 
-  // Verifica palpite duplicado (mesmo telefone + mesmo placar neste jogo)
-  const jaExiste = Object.values(palpitesCache).some(p =>
-    p.jogoId === jogoSelecionado &&
-    p.telefone === telefone &&
-    p.placarA === parseInt(placarA) &&
-    p.placarB === parseInt(placarB)
-  );
+  // Verifica palpite duplicado (mesmo telefone normalizado + mesmo placar neste jogo)
+  const jaExiste = Object.values(palpitesCache).some(p =>{
+    const telNorm = (p.telefone||'').replace(/\D/g,'').replace(/^55/,'').replace(/^0/,'');
+    return p.jogoId === jogoSelecionado &&
+      telNorm === telefone &&
+      p.placarA === parseInt(placarA) &&
+      p.placarB === parseInt(placarB);
+  });
   if(jaExiste){
     const avisoEl = document.getElementById('avisoDuplicado');
     if(avisoEl){
@@ -1494,8 +1503,9 @@ ${j.timeA} x ${j.timeB}
 function renderMeusPalpites(){
   return `
   <div class="card">
-    <label>Buscar pelo telefone usado no palpite</label>
-    <input type="text" id="buscaTelefone" placeholder="(00) 00000-0000">
+    <label>Buscar seus palpites</label>
+    <input type="tel" id="buscaTelefone" placeholder="WhatsApp usado no palpite">
+    <p style="font-size:.78rem;color:var(--cinza);margin:-4px 0 10px">Pode digitar só os últimos dígitos — sem espaço ou traço.</p>
     <button class="btn btn-primary" id="btnBuscarPalpites">Buscar meus palpites</button>
   </div>
   <div id="resultadoBusca"></div>
@@ -1503,9 +1513,13 @@ function renderMeusPalpites(){
 }
 document.addEventListener('click', e=>{
   if(e.target.id==='btnBuscarPalpites'){
-    const tel = document.getElementById('buscaTelefone').value.trim();
+    const telRaw = document.getElementById('buscaTelefone').value.trim();
+    const tel = telRaw.replace(/\D/g,'').replace(/^55/,'').replace(/^0/,'');
     const resultados = Object.entries(palpitesCache)
-      .filter(([_,p])=>p.telefone===tel)
+      .filter(([_,p])=>{
+        const telNorm = (p.telefone||'').replace(/\D/g,'').replace(/^55/,'').replace(/^0/,'');
+        return telNorm === tel || telNorm.endsWith(tel);
+      })
       .sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0));
     const div = document.getElementById('resultadoBusca');
     if(resultados.length===0){
@@ -1532,7 +1546,8 @@ document.addEventListener('click', e=>{
         <div class="small-text">Seu palpite: ${p.placarA} x ${p.placarB}</div>
         ${j.status==='encerrado' && j.placarA!=null ? `<div class="small-text">Resultado real: ${j.placarA} x ${j.placarB}</div>` : ''}
         ${!p.pago ? `<div class="pix-box" style="margin-top:10px;text-align:center">
-          <strong>Pague ${formatBRL(j.valor)} via Pix</strong>
+          <div style="font-weight:800;color:var(--vermelho);margin-bottom:6px">⚠️ Palpite ainda não confirmado!</div>
+          <strong>Pague ${formatBRL(j.valor)} via Pix para garantir sua participação</strong>
           <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:180px;width:100%;margin:10px auto;border-radius:8px;border:1px solid #eee">
           <div style="text-align:left">Chave: 
             <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
@@ -1561,9 +1576,12 @@ function renderAdminLogin(){
 function loginAdmin(){
   const senha = document.getElementById('senhaAdmin').value.trim();
   if(!senha){ toast('Digite a senha'); return; }
-  // Tenta primeiro no Firebase; se falhar usa verificação local
   db.ref('config/senhAdmin').once('value').then(snap=>{
-    const senhaCorreta = snap.val() || (_x()+_y()+_z());
+    const senhaCorreta = snap.val();
+    if(!senhaCorreta){
+      toast('Senha não configurada no Firebase. Acesse o banco e crie config/senhAdmin.');
+      return;
+    }
     if(senha === senhaCorreta){
       sessionStorage.setItem('bolao_admin','1');
       adminLogado = true;
@@ -1572,18 +1590,9 @@ function loginAdmin(){
       toast('Senha incorreta');
     }
   }).catch(()=>{
-    // Fallback local se Firebase não responder
-    if(senha === _x()+_y()+_z()){
-      sessionStorage.setItem('bolao_admin','1');
-      adminLogado = true;
-      render();
-    } else {
-      toast('Senha incorreta');
-    }
+    toast('Erro ao conectar ao Firebase. Verifique sua conexão.');
   });
 }
-// Partes ofuscadas — não expõe a senha diretamente
-const _x=()=>atob('MDUw'),_y=()=>atob('NDg5'),_z=()=>atob('ODk=');
 
 function renderAdminPainel(){
   return `
