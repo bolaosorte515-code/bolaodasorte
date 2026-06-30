@@ -554,6 +554,12 @@ footer{text-align:center;padding:20px;font-size:.72rem;color:var(--cinza);}
   text-decoration:none;padding:8px;border-radius:6px;
   font-size:.78rem;font-weight:700;
 }
+.btn-whats-icon{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;background:#25d366;color:#fff;
+  text-decoration:none;flex-shrink:0;
+}
+.btn-whats-icon:hover{background:#1ebd5a;}
 .pendente-acoes-sec .btn-remover-palpite{
   background:none;border:1px solid #f0c0c0;color:var(--vermelho);
   cursor:pointer;font-size:.75rem;padding:8px 12px;border-radius:6px;
@@ -721,6 +727,54 @@ let viewAtual = 'jogos';
 let jogoSelecionado = null;
 
 /* ===================== UTIL ===================== */
+/* Escapa HTML para evitar XSS armazenado em campos preenchidos por participantes (nome, telefone, busca) */
+function escapeHtml(str){
+  if(str===null || str===undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+/* Botão/ícone de WhatsApp para contato rápido (usado nas telas do admin) */
+function btnWhatsContato(nome, telefone, mensagem){
+  if(!telefone) return '';
+  const telLimpo = String(telefone).replace(/\D/g,'');
+  const tel = telLimpo.startsWith('55') ? telLimpo : '55'+telLimpo;
+  const msg = encodeURIComponent(mensagem || `Oi ${nome||''}!`);
+  return `<a href="https://wa.me/${tel}?text=${msg}" target="_blank" class="btn-whats-icon" title="Contatar ${escapeHtml(nome||'')} no WhatsApp" onclick="event.stopPropagation()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.091.535 4.06 1.471 5.777L.057 24l6.344-1.385A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.809 9.809 0 01-5.003-1.368l-.36-.214-3.72.813.838-3.617-.235-.374A9.817 9.817 0 012.182 12C2.182 6.57 6.57 2.182 12 2.182c5.43 0 9.818 4.388 9.818 9.818 0 5.43-4.388 9.818-9.818 9.818z"/></svg>
+  </a>`;
+}
+
+/* Lê um arquivo de imagem do dispositivo, redimensiona/comprime e retorna base64 via callback */
+function lerImagemComoBase64(file, callback, maxDim){
+  maxDim = maxDim || 500;
+  if(!file || !file.type.startsWith('image/')){ toast('Selecione um arquivo de imagem válido'); return; }
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let { width, height } = img;
+      if(width > maxDim || height > maxDim){
+        if(width > height){ height = Math.round(height * (maxDim/width)); width = maxDim; }
+        else { width = Math.round(width * (maxDim/height)); height = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      callback(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = ()=> toast('Não foi possível ler essa imagem');
+    img.src = e.target.result;
+  };
+  reader.onerror = ()=> toast('Erro ao ler o arquivo');
+  reader.readAsDataURL(file);
+}
+
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -862,6 +916,14 @@ db.ref('configApp/logoUrl').on('value', snap=>{
     fallbackEl.classList.remove('hidden');
     headerEl.classList.remove('com-banner');
   }
+  if(viewAtual==='admin' && adminTabAtual==='config') render();
+});
+
+db.ref('configApp/pix').on('value', snap=>{
+  const pix = snap.val() || {};
+  configAppCache.pixNome = pix.nome || '';
+  configAppCache.pixChave = pix.chave || '';
+  configAppCache.pixQrUrl = pix.qrUrl || '';
   if(viewAtual==='admin' && adminTabAtual==='config') render();
 });
 
@@ -1043,7 +1105,7 @@ function renderDetalheJogo(id){
       resultadoHtml = `
         <div class="premio-box">
           <div style="font-size:.8rem;font-weight:700;color:var(--azul)">🎟️ NINGUÉM ACERTOU O PLACAR — FOI PRA RIFA</div>
-          <div class="premio-valor">${sorteado? sorteado.nome : '—'}</div>
+          <div class="premio-valor">${sorteado? escapeHtml(sorteado.nome) : '—'}</div>
           <div class="small-text">Levou o prêmio de ${formatBRL(premioTotal)} no sorteio entre os ${pagos.length} participantes pagos</div>
         </div>`;
     } else if(ganhadores.length>0){
@@ -1051,7 +1113,7 @@ function renderDetalheJogo(id){
       resultadoHtml = `
         <div class="premio-box">
           <div style="font-size:.8rem;font-weight:700;color:var(--verde)">🏆 GANHADOR(ES) — ACERTOU O PLACAR EXATO</div>
-          ${ganhadores.map(([_,p])=>`<div class="premio-valor">${p.nome}</div>`).join('')}
+          ${ganhadores.map(([_,p])=>`<div class="premio-valor">${escapeHtml(p.nome)}</div>`).join('')}
           <div class="small-text">${ganhadores.length>1? `Prêmio dividido entre ${ganhadores.length}: `:''}${formatBRL(cada)} cada</div>
         </div>`;
     } else {
@@ -1150,7 +1212,7 @@ function renderDetalheJogo(id){
           return `<div class="lista-papel-row">
             <span class="lp-num">${String(i+1).padStart(2,'0')}</span>
             <span class="lp-placar">${p.placarA} x ${p.placarB}${disputaHtml}</span>
-            <span class="lp-nome">${p.nome}</span>
+            <span class="lp-nome">${escapeHtml(p.nome)}</span>
             <span class="${p.pago ? 'status-pago' : 'status-pendente'}">${p.pago ? '✓ PAGO' : 'Pendente'}</span>
           </div>`;}).join('')}
     </div>
@@ -1208,6 +1270,30 @@ function bindEvents(){
   document.querySelectorAll('.tab-admin-btn').forEach(b=>{
     b.onclick = ()=>{ adminTabAtual = b.dataset.tab; render(); };
   });
+
+  const novoPixQrFile = document.getElementById('novoPixQrFile');
+  if(novoPixQrFile) novoPixQrFile.onchange = ()=>{
+    const file = novoPixQrFile.files[0];
+    if(!file) return;
+    const statusEl = document.getElementById('statusUploadPixQr');
+    if(statusEl) statusEl.textContent = 'Processando imagem...';
+    lerImagemComoBase64(file, (base64)=>{
+      const urlInput = document.getElementById('novoPixQrUrl');
+      const preview = document.getElementById('previewPixQr');
+      if(urlInput) urlInput.value = base64;
+      if(preview){ preview.src = base64; preview.classList.remove('hidden'); }
+      if(statusEl) statusEl.textContent = '✓ Imagem pronta — clique em "Salvar dados do Pix" para confirmar.';
+    });
+  };
+
+  const btnSalvarPix = document.getElementById('btnSalvarPix');
+  if(btnSalvarPix) btnSalvarPix.onclick = ()=>{
+    const nome = document.getElementById('novoPixNome').value.trim();
+    const chave = document.getElementById('novoPixChave').value.trim();
+    const qrUrl = document.getElementById('novoPixQrUrl').value.trim();
+    if(!nome || !chave || !qrUrl){ toast('Preencha nome, chave e URL do QR Code'); return; }
+    db.ref('configApp/pix').set({ nome, chave, qrUrl }).then(()=>toast('Dados do Pix salvos!'));
+  };
 
   const btnSalvarLogo = document.getElementById('btnSalvarLogo');
   if(btnSalvarLogo) btnSalvarLogo.onclick = ()=>{
@@ -1345,6 +1431,15 @@ function enviarPalpite(){
   if(!nome || !telefone || telefone.length < 10){ toast('Preencha nome e WhatsApp válido'); return; }
   if(placarA==='' || placarB===''){ toast('Preencha o placar do seu palpite'); return; }
 
+  // Rate-limit simples: evita envios em sequência muito rápida (spam/bot)
+  const agora = Date.now();
+  const ultimoEnvio = parseInt(localStorage.getItem('bolao_ultimo_envio')||'0');
+  if(agora - ultimoEnvio < 4000){
+    toast('Aguarde alguns segundos antes de enviar outro palpite');
+    return;
+  }
+  localStorage.setItem('bolao_ultimo_envio', String(agora));
+
   // Verifica palpite duplicado (mesmo telefone normalizado + mesmo placar neste jogo)
   const jaExiste = Object.values(palpitesCache).some(p =>{
     const telNorm = (p.telefone||'').replace(/\D/g,'').replace(/^55/,'').replace(/^0/,'');
@@ -1417,18 +1512,21 @@ function mostrarConfirmacaoMultipla(nome, placarA, placarB){
 function mostrarPix(){
   const j = jogosCache[jogoSelecionado];
   const app = document.getElementById('app');
+  const nomeRecebedor = configAppCache.pixNome || NOME_RECEBEDOR;
+  const chavePix = configAppCache.pixChave || CHAVE_PIX;
+  const qrCodeUrl = configAppCache.pixQrUrl || QRCODE_PIX_URL;
   app.innerHTML = `
   <div class="card">
     <h3 style="margin-bottom:10px">✅ Palpite registrado!</h3>
     <p style="font-size:.88rem;color:var(--cinza)">Agora é só pagar via Pix para confirmar sua participação. Seu palpite só entra no jogo depois da confirmação manual do pagamento.</p>
     <div class="pix-box" style="text-align:center">
       <strong>Valor: ${formatBRL(j.valor)}</strong>
-      <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:220px;width:100%;margin:12px auto;border-radius:8px;border:1px solid #eee">
+      <img src="${qrCodeUrl}" alt="QR Code Pix" style="display:block;max-width:220px;width:100%;margin:12px auto;border-radius:8px;border:1px solid #eee">
       <div style="text-align:left">
-        Chave Pix (${NOME_RECEBEDOR}):
+        Chave Pix (${escapeHtml(nomeRecebedor)}):
         <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-          <code id="chavePixPrincipal">${CHAVE_PIX}</code>
-          <button onclick="navigator.clipboard.writeText('${CHAVE_PIX}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
+          <code id="chavePixPrincipal">${escapeHtml(chavePix)}</code>
+          <button onclick="navigator.clipboard.writeText('${chavePix}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
         </div>
       </div>
     </div>
@@ -1548,11 +1646,11 @@ document.addEventListener('click', e=>{
         ${!p.pago ? `<div class="pix-box" style="margin-top:10px;text-align:center">
           <div style="font-weight:800;color:var(--vermelho);margin-bottom:6px">⚠️ Palpite ainda não confirmado!</div>
           <strong>Pague ${formatBRL(j.valor)} via Pix para garantir sua participação</strong>
-          <img src="${QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:180px;width:100%;margin:10px auto;border-radius:8px;border:1px solid #eee">
+          <img src="${configAppCache.pixQrUrl || QRCODE_PIX_URL}" alt="QR Code Pix" style="display:block;max-width:180px;width:100%;margin:10px auto;border-radius:8px;border:1px solid #eee">
           <div style="text-align:left">Chave: 
             <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
-              <code>${CHAVE_PIX}</code>
-              <button onclick="navigator.clipboard.writeText('${CHAVE_PIX}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
+              <code>${escapeHtml(configAppCache.pixChave || CHAVE_PIX)}</code>
+              <button onclick="navigator.clipboard.writeText('${configAppCache.pixChave || CHAVE_PIX}').then(()=>{ this.textContent='✅'; setTimeout(()=>this.textContent='📋',1500); })" title="Copiar chave Pix" style="background:var(--verde);color:#fff;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:1rem;flex-shrink:0">📋</button>
             </div>
           </div>
         </div>` : ''}
@@ -1693,7 +1791,7 @@ document.addEventListener('click', e=>{
         total.textContent = jogadores.length;
         nomes.innerHTML = jogadores.map((j,i)=>
           `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #e8eaed">
-            <span>${String(i+1).padStart(2,'0')}. ${j.nome}</span>
+            <span>${String(i+1).padStart(2,'0')}. ${escapeHtml(j.nome)}</span>
             <span style="color:var(--cinza);font-size:.75rem">${j.telefone}</span>
           </div>`
         ).join('');
@@ -1710,7 +1808,35 @@ document.addEventListener('click', e=>{
 
 function renderAdminConfig(){
   const logoAtual = configAppCache.logoUrl || '';
+  const pixNomeAtual = configAppCache.pixNome || NOME_RECEBEDOR;
+  const pixChaveAtual = configAppCache.pixChave || CHAVE_PIX;
+  const pixQrAtual = configAppCache.pixQrUrl || QRCODE_PIX_URL;
   return `
+  <div class="card">
+    <h3 style="margin-bottom:6px;font-size:1rem">💰 Dados do Pix</h3>
+    <p class="small-text" style="margin-bottom:12px">Esses dados aparecem na tela de pagamento para todos os participantes.</p>
+    <div class="field">
+      <label>Nome do recebedor</label>
+      <input type="text" id="novoPixNome" placeholder="Nome que aparece no Pix" value="${escapeHtml(pixNomeAtual)}">
+    </div>
+    <div class="field">
+      <label>Chave Pix (e-mail, telefone, CPF ou aleatória)</label>
+      <input type="text" id="novoPixChave" placeholder="Chave Pix" value="${escapeHtml(pixChaveAtual)}">
+    </div>
+    <div class="field">
+      <label>URL da imagem do QR Code (cole o link de uma imagem hospedada)</label>
+      <input type="text" id="novoPixQrUrl" placeholder="https://..." value="${escapeHtml(pixQrAtual)}">
+    </div>
+    <div class="field">
+      <label>Ou envie a imagem do seu computador/celular</label>
+      <input type="file" id="novoPixQrFile" accept="image/*">
+      <p class="small-text" id="statusUploadPixQr" style="margin-top:4px"></p>
+    </div>
+    ${pixQrAtual ? `<img src="${pixQrAtual}" class="logo-preview-admin" alt="preview QR code" style="max-width:200px" id="previewPixQr">` : `<img src="" class="logo-preview-admin hidden" alt="preview QR code" style="max-width:200px" id="previewPixQr">`}
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-primary" id="btnSalvarPix">Salvar dados do Pix</button>
+    </div>
+  </div>
   <div class="card">
     <h3 style="margin-bottom:6px;font-size:1rem">🖼️ Banner do cabeçalho (URL)</h3>
     <p class="small-text" style="margin-bottom:12px">Imagem ideal: 1600x500 (proporção ~3.2:1, formato de faixa larga). Ela substitui completamente o título em texto no topo do site.</p>
@@ -1898,7 +2024,7 @@ function renderAdminPagamentos(){
   const pagos = Object.entries(palpitesCache).filter(([_,p])=>p.pago).sort((a,b)=>(b[1].criadoEm||0)-(a[1].criadoEm||0));
   return `
   <div class="card">
-    <input type="text" id="buscaPendentes" placeholder="🔎 Buscar por nome ou telefone..." value="${termoBusca}">
+    <input type="text" id="buscaPendentes" placeholder="🔎 Buscar por nome ou telefone..." value="${escapeHtml(termoBusca)}">
   </div>
   <div class="card">
     <h3 style="margin-bottom:8px;font-size:1rem">⏳ Pendentes de confirmação (${pendentes.length})</h3>
@@ -1911,8 +2037,8 @@ function renderAdminPagamentos(){
         return `
         <div class="pendente-card">
           <div class="pendente-info">
-            <div class="pendente-nome">${p.nome}</div>
-            <div class="pendente-tel">${p.telefone}</div>
+            <div class="pendente-nome" style="display:flex;align-items:center;gap:8px">${btnWhatsContato(p.nome, p.telefone)}${escapeHtml(p.nome)}</div>
+            <div class="pendente-tel">${escapeHtml(p.telefone)}</div>
             <div class="small-text">${j?`${j.timeA} x ${j.timeB}`:'(jogo removido)'} — Palpite: <strong>${p.placarA}x${p.placarB}</strong> — ${valor}</div>
           </div>
           <div class="pendente-acoes">
@@ -1931,7 +2057,7 @@ function renderAdminPagamentos(){
       pagos.map(([id,p])=>{
         const j = jogosCache[p.jogoId];
         return `<div class="palpite-item">
-          <span>${p.nome} — ${j?`${j.timeA}x${j.timeB}`:''} (${p.placarA}x${p.placarB})</span>
+          <span style="display:flex;align-items:center;gap:8px">${btnWhatsContato(p.nome, p.telefone, `Oi ${p.nome}! Sobre o bolão (${j?`${j.timeA} x ${j.timeB}`:''}) — palpite ${p.placarA}x${p.placarB}.`)}${escapeHtml(p.nome)} — ${j?`${escapeHtml(j.timeA)}x${escapeHtml(j.timeB)}`:''} (${p.placarA}x${p.placarB})</span>
           <button class="btn-remover-palpite" data-id="${id}" style="background:none;border:none;color:var(--vermelho);cursor:pointer;font-size:.75rem">remover</button>
         </div>`;
       }).join('')}
@@ -1994,8 +2120,11 @@ function renderAdminResultados(){
         <div class="card" style="background:#fafbfc">
           <div style="font-weight:700">${j.timeA} ${j.placarA} x ${j.placarB} ${j.timeB}</div>
           <div class="small-text">${pagos.length} pago(s) · ${ganhadores.length} acertador(es)</div>
+          ${ganhadores.length>0 ? `<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px">
+            ${ganhadores.map(([_,p])=>`<div style="display:flex;align-items:center;gap:8px;font-size:.85rem;font-weight:700;color:var(--verde)">${btnWhatsContato(p.nome, p.telefone, `Parabéns ${p.nome}! Você acertou o palpite do jogo ${j.timeA} x ${j.timeB} (${j.placarA}x${j.placarB})! 🎉⚽`)}${escapeHtml(p.nome)}</div>`).join('')}
+          </div>` : ''}
           ${precisaSorteio ? `<button class="btn-sortear btn btn-amarelo" data-jogo="${id}" style="margin-top:8px">🎟️ Ninguém acertou — Sortear ganhador</button>` : ''}
-          ${j.sorteioId ? `<div class="small-text" style="color:var(--verde);font-weight:700">Sorteado: ${palpitesCache[j.sorteioId]?.nome||'—'}</div>` : ''}
+          ${j.sorteioId ? `<div class="small-text" style="color:var(--verde);font-weight:700;display:flex;align-items:center;gap:8px;margin-top:4px">${btnWhatsContato(palpitesCache[j.sorteioId]?.nome, palpitesCache[j.sorteioId]?.telefone, `Parabéns ${palpitesCache[j.sorteioId]?.nome}! Você foi sorteado no bolão ${j.timeA} x ${j.timeB}! 🎉⚽`)}Sorteado: ${escapeHtml(palpitesCache[j.sorteioId]?.nome)||'—'}</div>` : ''}
         </div>`;
       }).join('')}
   </div>
